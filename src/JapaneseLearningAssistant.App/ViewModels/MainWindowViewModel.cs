@@ -46,7 +46,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string[] Voices { get; } = ["ja-JP-Neural2-B", "ja-JP-Neural2-C", "ja-JP-Wavenet-B", "ja-JP-Wavenet-C"];
 
     [ObservableProperty]
-    private string _inputText = "我明天把资料发给你，请确认一下。";
+    private string _inputText = "";
 
     [ObservableProperty]
     private string _selectedLanguageMode = "自动判断";
@@ -96,9 +96,6 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string _selectedOutputText = "";
 
-    [ObservableProperty]
-    private string _audioFilePath = "";
-
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
 
@@ -137,23 +134,6 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task GenerateSpeechAsync()
-    {
-        var text = GetTextForSelectedStyle();
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            StatusText = "请先分析文本，或选择一个有内容的输出版本。";
-            return;
-        }
-
-        await RunBusyAsync("正在生成日语语音...", async cancellationToken =>
-        {
-            var audio = await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
-            StatusText = $"语音已生成：{audio.FilePath}";
-        });
-    }
-
-    [RelayCommand]
     private async Task PlayAudioAsync()
     {
         var text = GetTextForSelectedStyle();
@@ -163,16 +143,15 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        await RunBusyAsync("正在准备日语语音...", async cancellationToken =>
+        await RunBusyAsync("语音生成中...", async cancellationToken =>
         {
             if (!HasPlayableAudioFor(text))
             {
-                StatusText = "当前版本还没有音频，正在生成后播放...";
                 await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
             }
 
-            LocalAudioPlayer.Play(AudioFilePath);
-            StatusText = "正在播放音频。";
+            LocalAudioPlayer.Play(_latestAudioFilePath ?? "");
+            StatusText = "正在播放。";
         });
     }
 
@@ -194,7 +173,6 @@ public partial class MainWindowViewModel : ViewModelBase
         _latestAudioSourceText = null;
         _latestAudioVoiceName = null;
         _latestAudioSpeakingRate = null;
-        AudioFilePath = "";
 
         SummaryText = result.SummaryZh;
         TranslatedJapanese = result.TranslatedJapanese;
@@ -247,7 +225,6 @@ public partial class MainWindowViewModel : ViewModelBase
         _latestAudioSourceText = text;
         _latestAudioVoiceName = SelectedVoice;
         _latestAudioSpeakingRate = SpeakingRate;
-        AudioFilePath = audio.FilePath;
 
         return audio;
     }

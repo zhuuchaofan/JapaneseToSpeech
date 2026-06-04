@@ -51,7 +51,7 @@ export GEMINI_API_KEY="你的 Gemini API Key"
 export GOOGLE_TTS_API_KEY="你的 Google Cloud Text-to-Speech API Key"
 ```
 
-如果只想看界面，可以不配置 Key；点击分析或生成语音时会提示缺少对应配置。
+如果只想看界面，可以不配置 Key；点击分析或播放时会提示缺少对应配置。
 
 ## 构建
 
