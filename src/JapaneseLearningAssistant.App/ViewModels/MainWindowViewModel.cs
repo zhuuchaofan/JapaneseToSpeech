@@ -116,7 +116,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _playbackTimeText = "00:00 / 00:00";
 
     public string PlayAudioButtonText => IsAudioPlaying ? "暂停" : IsAudioPaused ? "继续" : "播放";
+    public string PlayAudioIcon => IsAudioPlaying ? "⏸" : "▶";
     public string SentencePlayButtonText => _isSentencePlaybackActive && IsAudioPlaying ? "暂停当前句" : _isSentencePlaybackActive && IsAudioPaused ? "继续当前句" : "播放当前句";
+    public string SentencePlayIcon => _isSentencePlaybackActive && IsAudioPlaying ? "⏸" : "▶";
     public bool CanPlaySelectedSentence => !IsBusy && SentenceAudioItems.Count > 0;
     public bool CanPlayPreviousSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index > 0;
     public bool CanPlayNextSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index < SentenceAudioItems.Count - 1;
@@ -133,6 +135,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _selectedSentencePlaybackMode = "自动下一句";
+
+    [ObservableProperty]
+    private bool _isCompactLayout;
 
     [RelayCommand]
     private async Task AnalyzeAsync()
@@ -273,11 +278,13 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnIsAudioPlayingChanged(bool value)
     {
         OnPropertyChanged(nameof(PlayAudioButtonText));
+        OnPropertyChanged(nameof(PlayAudioIcon));
     }
 
     partial void OnIsAudioPausedChanged(bool value)
     {
         OnPropertyChanged(nameof(PlayAudioButtonText));
+        OnPropertyChanged(nameof(PlayAudioIcon));
     }
 
     partial void OnIsBusyChanged(bool value)
@@ -601,6 +608,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void NotifySentenceControlProperties()
     {
         OnPropertyChanged(nameof(SentencePlayButtonText));
+        OnPropertyChanged(nameof(SentencePlayIcon));
         OnPropertyChanged(nameof(CanPlaySelectedSentence));
         OnPropertyChanged(nameof(CanPlayPreviousSentence));
         OnPropertyChanged(nameof(CanPlayNextSentence));
