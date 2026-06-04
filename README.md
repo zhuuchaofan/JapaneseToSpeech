@@ -21,16 +21,37 @@ docs/
   project-architecture.md
 ```
 
-## 环境变量
+## 本地配置
 
-运行前需要配置：
+推荐使用本地配置文件，不需要每次 `export`。
+
+复制模板：
+
+```bash
+cp appsettings.Local.example.json appsettings.Local.json
+```
+
+然后编辑 `appsettings.Local.json`：
+
+```json
+{
+  "geminiApiKey": "你的 Gemini API Key",
+  "googleTtsApiKey": "你的 Google Cloud Text-to-Speech API Key",
+  "geminiModel": "gemini-2.5-flash",
+  "googleTtsVoiceName": "ja-JP-Neural2-B"
+}
+```
+
+`appsettings.Local.json` 已被 `.gitignore` 排除，不会提交到 git。
+
+也可以继续使用环境变量，程序会优先读取 `appsettings.Local.json`，缺失时再读取：
 
 ```bash
 export GEMINI_API_KEY="你的 Gemini API Key"
 export GOOGLE_TTS_API_KEY="你的 Google Cloud Text-to-Speech API Key"
 ```
 
-如果只想看界面，可以不配置 Key；点击分析或生成语音时会提示缺少对应环境变量。
+如果只想看界面，可以不配置 Key；点击分析或生成语音时会提示缺少对应配置。
 
 ## 构建
 
@@ -75,6 +96,6 @@ dotnet run --project src/JapaneseLearningAssistant.Cli/JapaneseLearningAssistant
 
 ## 已知限制
 
-- API Key 目前通过环境变量配置，后续应加设置页和安全存储。
+- API Key 目前通过本地配置文件或环境变量配置，后续应加设置页和安全存储。
 - 历史记录使用本地 JSON，后续可升级 SQLite。
 - 当前工具环境无法稳定启动 macOS GUI，已通过项目级构建验证；请在本机桌面会话中运行 Avalonia 应用。

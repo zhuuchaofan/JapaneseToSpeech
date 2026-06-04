@@ -30,4 +30,5 @@ history.json
 # Secrets and local environment
 .env
 appsettings.Local.json
+!appsettings.Local.example.json
 secrets.json

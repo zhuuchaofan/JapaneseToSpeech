@@ -1,4 +1,5 @@
-﻿using JapaneseLearningAssistant.Core.Models;
+﻿using JapaneseLearningAssistant.Core.Configuration;
+using JapaneseLearningAssistant.Core.Models;
 using JapaneseLearningAssistant.Core.Services;
 
 Console.WriteLine("日语学习助手 CLI MVP");
@@ -23,12 +24,11 @@ if (string.IsNullOrWhiteSpace(text))
     return;
 }
 
-var geminiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "";
-var ttsKey = Environment.GetEnvironmentVariable("GOOGLE_TTS_API_KEY") ?? "";
+var config = LocalAppConfig.Load();
 var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JapaneseLearningAssistant");
 
-var gemini = new GoogleGeminiClient(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, geminiKey);
-var tts = new GoogleTextToSpeechService(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, ttsKey, Path.Combine(appData, "audio"));
+var gemini = new GoogleGeminiClient(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GeminiApiKey, config.GeminiModel);
+var tts = new GoogleTextToSpeechService(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GoogleTtsApiKey, Path.Combine(appData, "audio"));
 var history = new HistoryStore(appData);
 
 try

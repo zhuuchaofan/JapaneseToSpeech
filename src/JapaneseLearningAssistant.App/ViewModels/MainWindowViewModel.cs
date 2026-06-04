@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JapaneseLearningAssistant.Core.Configuration;
 using JapaneseLearningAssistant.Core.Models;
 using JapaneseLearningAssistant.Core.Services;
 
@@ -54,7 +55,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedStyle = "自然版";
 
     [ObservableProperty]
-    private string _selectedVoice = "ja-JP-Neural2-B";
+    private string _selectedVoice = LocalAppConfig.Load().GoogleTtsVoiceName;
 
     [ObservableProperty]
     private double _speakingRate = 0.85;
@@ -63,7 +64,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _isBusy;
 
     [ObservableProperty]
-    private string _statusText = "准备就绪。请配置 GEMINI_API_KEY 和 GOOGLE_TTS_API_KEY 后开始。";
+    private string _statusText = "准备就绪。请配置 appsettings.Local.json 或环境变量后开始。";
 
     [ObservableProperty]
     private string _summaryText = "";
@@ -269,14 +270,20 @@ public partial class MainWindowViewModel : ViewModelBase
         _ => InputLanguageMode.Auto
     };
 
-    private static GoogleGeminiClient CreateGeminiClient() =>
-        new(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "");
+    private static GoogleGeminiClient CreateGeminiClient()
+    {
+        var config = LocalAppConfig.Load();
+        return new GoogleGeminiClient(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GeminiApiKey, config.GeminiModel);
+    }
 
-    private static GoogleTextToSpeechService CreateTtsService() =>
-        new(
+    private static GoogleTextToSpeechService CreateTtsService()
+    {
+        var config = LocalAppConfig.Load();
+        return new GoogleTextToSpeechService(
             new HttpClient { Timeout = TimeSpan.FromSeconds(120) },
-            Environment.GetEnvironmentVariable("GOOGLE_TTS_API_KEY") ?? "",
+            config.GoogleTtsApiKey,
             Path.Combine(GetAppDataDirectory(), "audio"));
+    }
 
     private static HistoryStore CreateHistoryStore() => new(GetAppDataDirectory());
 
