@@ -4,6 +4,7 @@ using JapaneseLearningAssistant.Core.Services;
 
 Console.WriteLine("日语学习助手 CLI MVP");
 Console.WriteLine("输入中文或日语，按空行开始分析。");
+AppLogger.Info("CLI started.");
 
 var lines = new List<string>();
 while (true)
@@ -20,6 +21,7 @@ while (true)
 var text = string.Join(Environment.NewLine, lines);
 if (string.IsNullOrWhiteSpace(text))
 {
+    AppLogger.Warning("CLI exited because input text was empty.");
     Console.WriteLine("没有输入文本。");
     return;
 }
@@ -40,6 +42,7 @@ var history = new HistoryStore(appData);
 
 try
 {
+    AppLogger.Info($"CLI analysis started. TextLength={text.Length}.");
     var result = await gemini.AnalyzeAsync(new AnalyzeTextRequest
     {
         Text = text,
@@ -47,6 +50,7 @@ try
         Scenario = "日语学习",
         TargetStyle = "自然版"
     }, CancellationToken.None);
+    AppLogger.Info($"CLI analysis completed. Issues={result.Issues.Count}.");
 
     Console.WriteLine();
     Console.WriteLine("概要：");
@@ -72,11 +76,14 @@ try
     Console.Write("是否生成日语语音？y/N: ");
     if (Console.ReadLine()?.Trim().Equals("y", StringComparison.OrdinalIgnoreCase) == true)
     {
+        AppLogger.Info("CLI TTS generation requested.");
         var audio = await tts.GenerateAsync(new TtsRequest { Text = result.ReadingOptimizedJapanese }, CancellationToken.None);
         Console.WriteLine($"音频文件：{audio.FilePath}");
+        AppLogger.Info($"CLI TTS generation completed. FilePath={audio.FilePath}.");
     }
 }
 catch (Exception ex)
 {
+    AppLogger.Error(ex, "CLI operation failed.");
     Console.WriteLine(ex.Message);
 }

@@ -41,6 +41,7 @@ public sealed class TtsAudioCacheService : ITextToSpeechService
 
         if (File.Exists(audioPath))
         {
+            AppLogger.Info($"TTS cache hit. CacheKey={cacheKey}, FilePath={audioPath}.");
             return CreateCachedResult(audioPath, request);
         }
 
@@ -49,9 +50,11 @@ public sealed class TtsAudioCacheService : ITextToSpeechService
         {
             if (File.Exists(audioPath))
             {
+                AppLogger.Info($"TTS cache hit after lock. CacheKey={cacheKey}, FilePath={audioPath}.");
                 return CreateCachedResult(audioPath, request);
             }
 
+            AppLogger.Info($"TTS cache miss. CacheKey={cacheKey}, TextLength={request.Text.Length}, VoiceName={request.VoiceName}, SpeakingRate={request.SpeakingRate}.");
             var generated = await _inner.GenerateAsync(request, cancellationToken);
             File.Copy(generated.FilePath, audioPath, overwrite: false);
 
@@ -70,6 +73,7 @@ public sealed class TtsAudioCacheService : ITextToSpeechService
 
             await File.WriteAllTextAsync(metadataPath, JsonSerializer.Serialize(metadata, JsonOptions), cancellationToken);
             DeleteGeneratedTemporaryFile(generated.FilePath, audioPath);
+            AppLogger.Info($"TTS audio cached. CacheKey={cacheKey}, FilePath={audioPath}.");
 
             return CreateCachedResult(audioPath, request);
         }
@@ -128,6 +132,7 @@ public sealed class TtsAudioCacheService : ITextToSpeechService
         }
         catch
         {
+            AppLogger.Warning($"Could not delete temporary generated TTS file: {generatedPath}");
             // Temporary cleanup is best effort; the cached audio is already available.
         }
     }

@@ -1,4 +1,5 @@
 using NAudio.Wave;
+using JapaneseLearningAssistant.Core.Services;
 
 namespace JapaneseLearningAssistant.App.Services;
 
@@ -32,6 +33,7 @@ public sealed class NAudioPlaybackService : IAudioPlaybackService
 
         LoadedFilePath = filePath;
         SetState(AudioPlaybackState.Stopped);
+        AppLogger.Info($"Audio loaded. FilePath={filePath}, Duration={Duration}.");
     }
 
     public void Play()
@@ -48,6 +50,7 @@ public sealed class NAudioPlaybackService : IAudioPlaybackService
 
         _output.Play();
         SetState(AudioPlaybackState.Playing);
+        AppLogger.Info($"Audio playback started. FilePath={LoadedFilePath}, Position={Position}.");
     }
 
     public void Pause()
@@ -59,6 +62,7 @@ public sealed class NAudioPlaybackService : IAudioPlaybackService
 
         _output.Pause();
         SetState(AudioPlaybackState.Paused);
+        AppLogger.Info($"Audio playback paused. FilePath={LoadedFilePath}, Position={Position}.");
     }
 
     public void Stop()
@@ -73,6 +77,7 @@ public sealed class NAudioPlaybackService : IAudioPlaybackService
         _reader.CurrentTime = TimeSpan.Zero;
         _isManualStop = false;
         SetState(AudioPlaybackState.Stopped);
+        AppLogger.Info($"Audio playback stopped. FilePath={LoadedFilePath}.");
     }
 
     public void Seek(TimeSpan position)
@@ -93,6 +98,7 @@ public sealed class NAudioPlaybackService : IAudioPlaybackService
         }
 
         _reader.CurrentTime = position;
+        AppLogger.Info($"Audio seek. FilePath={LoadedFilePath}, Position={position}.");
     }
 
     public void Dispose()
@@ -111,6 +117,7 @@ public sealed class NAudioPlaybackService : IAudioPlaybackService
         {
             _reader.CurrentTime = TimeSpan.Zero;
             SetState(AudioPlaybackState.Stopped);
+            AppLogger.Info($"Audio playback ended. FilePath={LoadedFilePath}.");
             PlaybackEnded?.Invoke(this, EventArgs.Empty);
         }
     }

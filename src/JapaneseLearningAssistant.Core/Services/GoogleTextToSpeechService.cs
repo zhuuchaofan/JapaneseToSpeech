@@ -21,13 +21,17 @@ public sealed class GoogleTextToSpeechService : ITextToSpeechService
 
     public async Task<AudioGenerationResult> GenerateAsync(TtsRequest request, CancellationToken cancellationToken)
     {
+        AppLogger.Info($"Google TTS request started. TextLength={request.Text.Length}, VoiceName={request.VoiceName}, SpeakingRate={request.SpeakingRate}, AudioFormat={request.AudioFormat}.");
+
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
+            AppLogger.Error("Google TTS request failed because API key is missing.");
             throw new InvalidOperationException("缺少 Google TTS API Key。请在 appsettings.Local.json 的 googleTtsApiKey 中配置，或设置 GOOGLE_TTS_API_KEY 环境变量。");
         }
 
         if (string.IsNullOrWhiteSpace(request.Text))
         {
+            AppLogger.Error("Google TTS request failed because text is empty.");
             throw new InvalidOperationException("没有可生成语音的日语文本。");
         }
 
@@ -55,18 +59,21 @@ public sealed class GoogleTextToSpeechService : ITextToSpeechService
 
         if (!response.IsSuccessStatusCode)
         {
+            AppLogger.Error($"Google TTS request failed. StatusCode={response.StatusCode}, Reason={response.ReasonPhrase}.");
             throw new InvalidOperationException(GoogleApiErrorFormatter.Format("Google TTS", response.StatusCode, response.ReasonPhrase, responseText));
         }
 
         var result = JsonSerializer.Deserialize<GoogleTtsResponse>(responseText, JsonOptions);
         if (string.IsNullOrWhiteSpace(result?.AudioContent))
         {
+            AppLogger.Error("Google TTS response did not contain audio content.");
             throw new InvalidOperationException("Google TTS 没有返回音频内容。");
         }
 
         var extension = request.AudioFormat.Equals("MP3", StringComparison.OrdinalIgnoreCase) ? "mp3" : "audio";
         var filePath = Path.Combine(_outputDirectory, $"tts-{DateTimeOffset.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.{extension}");
         await File.WriteAllBytesAsync(filePath, Convert.FromBase64String(result.AudioContent), cancellationToken);
+        AppLogger.Info($"Google TTS audio generated. FilePath={filePath}.");
 
         return new AudioGenerationResult
         {

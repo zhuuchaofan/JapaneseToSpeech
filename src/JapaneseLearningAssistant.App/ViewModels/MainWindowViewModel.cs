@@ -53,6 +53,7 @@ public partial class MainWindowViewModel : ViewModelBase
         };
         _playbackTimer.Tick += (_, _) => UpdatePlaybackProgress();
         _playbackTimer.Start();
+        AppLogger.Info("MainWindowViewModel initialized.");
         _ = LoadHistoryAsync();
     }
 
@@ -140,6 +141,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         await RunBusyAsync("正在调用 Gemini 分析文本...", async cancellationToken =>
         {
+            AppLogger.Info($"Analysis started. TextLength={InputText.Trim().Length}, LanguageMode={SelectedLanguageMode}, Scenario={SelectedScenario}, TargetStyle={SelectedStyle}.");
             var request = new AnalyzeTextRequest
             {
                 Text = InputText.Trim(),
@@ -150,6 +152,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var result = await _geminiClient.AnalyzeAsync(request, cancellationToken);
             ApplyAnalysisResult(result);
+            AppLogger.Info($"Analysis completed. Issues={result.Issues.Count}, SelectedStyle={SelectedStyle}, SentenceCount={SentenceAudioItems.Count}.");
 
             await _historyStore.SaveAsync(new HistoryEntry
             {
@@ -167,6 +170,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task PlayAudioAsync()
     {
         _isSentencePlaybackActive = false;
+        AppLogger.Info($"Whole audio play requested. SelectedStyle={SelectedStyle}, VoiceName={SelectedVoice}, SpeakingRate={SpeakingRate}, Mode={SelectedWholeAudioPlaybackMode}.");
         var text = GetTextForSelectedStyle();
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -195,6 +199,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void StopAudio()
     {
         _isSentencePlaybackActive = false;
+        AppLogger.Info("Stop audio requested.");
         _audioPlaybackService.Stop();
         UpdatePlaybackProgress();
         UpdateAudioStateProperties();
@@ -211,6 +216,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        AppLogger.Info($"Selected sentence play requested. Index={sentence.Index}, TextLength={sentence.Text.Length}, Mode={SelectedSentencePlaybackMode}.");
         await PlaySentenceAsync(sentence, CancellationToken.None);
     }
 
@@ -331,6 +337,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _latestAudioSourceText = text;
         _latestAudioVoiceName = SelectedVoice;
         _latestAudioSpeakingRate = SpeakingRate;
+        AppLogger.Info($"Whole audio prepared. FilePath={audio.FilePath}, VoiceName={audio.VoiceName}.");
 
         return audio;
     }
@@ -351,6 +358,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         sentence.AudioFilePath = audio.FilePath;
         sentence.IsAudioReady = true;
+        AppLogger.Info($"Sentence audio prepared. Index={sentence.Index}, FilePath={audio.FilePath}, VoiceName={audio.VoiceName}.");
     }
 
     private bool HasPlayableAudioFor(string text)
@@ -405,6 +413,7 @@ public partial class MainWindowViewModel : ViewModelBase
             UpdatePlaybackProgress();
             UpdateAudioStateProperties();
             StatusText = $"正在播放第 {sentence.Index + 1} 句。";
+            AppLogger.Info($"Sentence playback started. Index={sentence.Index}, Mode={SelectedSentencePlaybackMode}.");
         });
     }
 
@@ -415,6 +424,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             _isSentencePlaybackActive = false;
             StatusText = "逐句播放完成。";
+            AppLogger.Info("Sentence playback completed at final sentence.");
             UpdatePlaybackProgress();
             UpdateAudioStateProperties();
             return;
@@ -463,6 +473,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         SelectedSentenceAudioItem = SentenceAudioItems.FirstOrDefault();
+        AppLogger.Info($"Sentence items refreshed. Count={SentenceAudioItems.Count}, SelectedStyle={SelectedStyle}.");
     }
 
     private void InvalidateSentenceAudio()
@@ -533,6 +544,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 _isSentencePlaybackActive = false;
                 StatusText = "播放完成。";
+                AppLogger.Info("Playback completed.");
             }
 
             UpdatePlaybackProgress();
@@ -598,6 +610,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            AppLogger.Error(ex, $"Operation failed. BusyText={busyText}");
             StatusText = ex.Message;
         }
         finally
@@ -616,9 +629,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 HistoryItems.Add(new HistoryItemViewModel(entry));
             }
+            AppLogger.Info($"History loaded. Count={HistoryItems.Count}.");
         }
-        catch
+        catch (Exception ex)
         {
+            AppLogger.Error(ex, "Failed to load history.");
             // History is optional for the MVP; UI should still open if the file is unreadable.
         }
     }
