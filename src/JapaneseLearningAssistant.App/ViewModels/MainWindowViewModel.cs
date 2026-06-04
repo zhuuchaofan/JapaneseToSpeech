@@ -745,8 +745,9 @@ public sealed partial class SentenceAudioItemViewModel : ObservableObject
     public string Text { get; }
     public string IndexText => $"{Index + 1}.";
     public string CurrentMarker => IsCurrent ? "▶" : "";
-    public string CurrentBackground => IsCurrent ? "#DBEAFE" : "#FFFFFF";
-    public string CurrentBorderBrush => IsCurrent ? "#2563EB" : "#E1E5EC";
+    public string CurrentBackground => IsCurrent ? "#EFF6FF" : "Transparent";
+    public string CurrentBorderBrush => IsCurrent ? "#2563EB" : "Transparent";
+    public string CurrentAccentBackground => IsCurrent ? "#2563EB" : "Transparent";
     public string CurrentIndexBackground => IsCurrent ? "#2563EB" : "#EEF2F6";
     public string CurrentIndexForeground => IsCurrent ? "#FFFFFF" : "#697586";
     public string CurrentTextForeground => IsCurrent ? "#0F172A" : "#172033";
@@ -757,6 +758,7 @@ public sealed partial class SentenceAudioItemViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CurrentMarker))]
     [NotifyPropertyChangedFor(nameof(CurrentBackground))]
     [NotifyPropertyChangedFor(nameof(CurrentBorderBrush))]
+    [NotifyPropertyChangedFor(nameof(CurrentAccentBackground))]
     [NotifyPropertyChangedFor(nameof(CurrentIndexBackground))]
     [NotifyPropertyChangedFor(nameof(CurrentIndexForeground))]
     [NotifyPropertyChangedFor(nameof(CurrentTextForeground))]
