@@ -116,6 +116,10 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _playbackTimeText = "00:00 / 00:00";
 
     public string PlayAudioButtonText => IsAudioPlaying ? "暂停" : IsAudioPaused ? "继续" : "播放";
+    public string SentencePlayButtonText => _isSentencePlaybackActive && IsAudioPlaying ? "暂停当前句" : _isSentencePlaybackActive && IsAudioPaused ? "继续当前句" : "播放当前句";
+    public bool CanPlaySelectedSentence => !IsBusy && SentenceAudioItems.Count > 0;
+    public bool CanPlayPreviousSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index > 0;
+    public bool CanPlayNextSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index < SentenceAudioItems.Count - 1;
 
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
@@ -274,6 +278,16 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnIsAudioPausedChanged(bool value)
     {
         OnPropertyChanged(nameof(PlayAudioButtonText));
+    }
+
+    partial void OnIsBusyChanged(bool value)
+    {
+        NotifySentenceControlProperties();
+    }
+
+    partial void OnSelectedSentenceAudioItemChanged(SentenceAudioItemViewModel? value)
+    {
+        NotifySentenceControlProperties();
     }
 
     partial void OnPlaybackPositionSecondsChanged(double value)
@@ -459,6 +473,8 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             CurrentSentenceAudioItem.IsCurrent = true;
         }
+
+        NotifySentenceControlProperties();
     }
 
     private void RefreshSentenceItems()
@@ -474,6 +490,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         SelectedSentenceAudioItem = SentenceAudioItems.FirstOrDefault();
         AppLogger.Info($"Sentence items refreshed. Count={SentenceAudioItems.Count}, SelectedStyle={SelectedStyle}.");
+        NotifySentenceControlProperties();
     }
 
     private void InvalidateSentenceAudio()
@@ -578,6 +595,15 @@ public partial class MainWindowViewModel : ViewModelBase
         IsAudioPaused = _audioPlaybackService.State == AudioPlaybackState.Paused;
         HasLoadedAudio = _audioPlaybackService.State != AudioPlaybackState.Empty;
         OnPropertyChanged(nameof(PlayAudioButtonText));
+        NotifySentenceControlProperties();
+    }
+
+    private void NotifySentenceControlProperties()
+    {
+        OnPropertyChanged(nameof(SentencePlayButtonText));
+        OnPropertyChanged(nameof(CanPlaySelectedSentence));
+        OnPropertyChanged(nameof(CanPlayPreviousSentence));
+        OnPropertyChanged(nameof(CanPlayNextSentence));
     }
 
     private void UpdatePlaybackProgress()

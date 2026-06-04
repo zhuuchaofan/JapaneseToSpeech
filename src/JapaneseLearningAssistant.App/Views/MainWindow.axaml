@@ -110,9 +110,9 @@
 
                     <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
                         <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                            <Button Content="上一句" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
-                            <Button Grid.Column="1" Content="播放当前句" Command="{Binding PlaySelectedSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
-                            <Button Grid.Column="2" Content="下一句" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
+                            <Button Content="← 上一句" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" MinWidth="82"/>
+                            <Button Grid.Column="1" Content="{Binding SentencePlayButtonText}" Command="{Binding PlaySelectedSentenceCommand}" IsEnabled="{Binding CanPlaySelectedSentence}" MinWidth="108"/>
+                            <Button Grid.Column="2" Content="下一句 →" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" MinWidth="82"/>
                             <TextBlock Grid.Column="3" Text="双击句子可直接播放" Foreground="#697586" VerticalAlignment="Center"/>
                             <ComboBox Grid.Column="4"
                                       ItemsSource="{Binding SentencePlaybackModes}"
