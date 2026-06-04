@@ -137,6 +137,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedSentencePlaybackMode = "自动下一句";
 
     [ObservableProperty]
+    private HistoryItemViewModel? _selectedHistoryItem;
+
+    [ObservableProperty]
     private bool _isCompactLayout;
 
     [RelayCommand]
@@ -253,6 +256,24 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         await PlaySentenceAsync(sentence, CancellationToken.None);
+    }
+
+    [RelayCommand]
+    private void RestoreHistory(HistoryItemViewModel? historyItem)
+    {
+        historyItem ??= SelectedHistoryItem;
+        if (historyItem is null)
+        {
+            StatusText = "请选择一条历史记录。";
+            return;
+        }
+
+        AppLogger.Info($"History restore requested. CreatedAt={historyItem.CreatedAt:O}, OriginalTextLength={historyItem.OriginalText.Length}.");
+        _isSentencePlaybackActive = false;
+        InputText = historyItem.OriginalText;
+        ApplyAnalysisResult(historyItem.AnalysisResult);
+        SelectedHistoryItem = historyItem;
+        StatusText = $"已恢复 {historyItem.CreatedAt:yyyy-MM-dd HH:mm} 的历史记录。";
     }
 
     partial void OnSelectedStyleChanged(string value)
@@ -797,16 +818,28 @@ public sealed class HistoryItemViewModel
 {
     public HistoryItemViewModel(HistoryEntry entry)
     {
-        Title = $"{entry.CreatedAt:yyyy-MM-dd HH:mm}  {Trim(entry.OriginalText)}";
-        Summary = entry.AnalysisResult.SummaryZh;
+        CreatedAt = entry.CreatedAt;
+        OriginalText = entry.OriginalText;
+        AnalysisResult = entry.AnalysisResult;
+        TimeText = entry.CreatedAt.ToString("yyyy-MM-dd HH:mm");
+        Title = Trim(entry.OriginalText, 42);
+        Summary = Trim(entry.AnalysisResult.SummaryZh, 80);
+        IssueCountText = entry.AnalysisResult.Issues.Count > 0
+            ? $"{entry.AnalysisResult.Issues.Count} 个问题"
+            : "无明显问题";
     }
 
+    public DateTimeOffset CreatedAt { get; }
+    public string OriginalText { get; }
+    public JapaneseAnalysisResult AnalysisResult { get; }
+    public string TimeText { get; }
     public string Title { get; }
     public string Summary { get; }
+    public string IssueCountText { get; }
 
-    private static string Trim(string text)
+    private static string Trim(string text, int maxLength)
     {
         text = text.ReplaceLineEndings(" ");
-        return text.Length <= 36 ? text : text[..36] + "...";
+        return text.Length <= maxLength ? text : text[..maxLength] + "...";
     }
 }

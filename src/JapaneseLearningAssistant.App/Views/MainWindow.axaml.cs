@@ -85,4 +85,17 @@ public partial class MainWindow : Window
             viewModel.PlaySelectedSentenceCommand.Execute(null);
         }
     }
+
+    private void HistoryListBox_DoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || viewModel.IsBusy)
+        {
+            return;
+        }
+
+        if (viewModel.RestoreHistoryCommand.CanExecute(viewModel.SelectedHistoryItem))
+        {
+            viewModel.RestoreHistoryCommand.Execute(viewModel.SelectedHistoryItem);
+        }
+    }
 }

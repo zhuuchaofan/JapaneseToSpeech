@@ -231,13 +231,21 @@
                                 <TextBlock Text="历史" FontSize="14" FontWeight="SemiBold"/>
                             </TabItem.Header>
                             <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
-                                <ListBox ItemsSource="{Binding HistoryItems}">
+                                <ListBox ItemsSource="{Binding HistoryItems}"
+                                         SelectedItem="{Binding SelectedHistoryItem}"
+                                         DoubleTapped="HistoryListBox_DoubleTapped">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:HistoryItemViewModel">
-                                            <StackPanel Spacing="3" Margin="0,6">
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
-                                            </StackPanel>
+                                            <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,8">
+                                                <StackPanel Spacing="4">
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                        <TextBlock Text="{Binding TimeText}" Foreground="#697586" FontSize="12"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="#697586" FontSize="12"/>
+                                                    </Grid>
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
+                                                </StackPanel>
+                                            </Border>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
@@ -276,13 +284,22 @@
                 <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
                     <Grid RowDefinitions="Auto,*" RowSpacing="10">
                         <TextBlock Text="最近历史" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
-                        <ListBox Grid.Row="1" ItemsSource="{Binding HistoryItems}">
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding HistoryItems}"
+                                 SelectedItem="{Binding SelectedHistoryItem}"
+                                 DoubleTapped="HistoryListBox_DoubleTapped">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:HistoryItemViewModel">
-                                    <StackPanel Spacing="3" Margin="0,6">
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
-                                    </StackPanel>
+                                    <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,8">
+                                        <StackPanel Spacing="4">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <TextBlock Text="{Binding TimeText}" Foreground="#697586" FontSize="12"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="#697586" FontSize="12"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
+                                        </StackPanel>
+                                    </Border>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
