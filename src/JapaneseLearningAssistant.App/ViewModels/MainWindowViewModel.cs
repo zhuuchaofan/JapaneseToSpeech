@@ -73,27 +73,6 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _summaryText = "";
 
     [ObservableProperty]
-    private string _translatedJapanese = "";
-
-    [ObservableProperty]
-    private string _correctedJapanese = "";
-
-    [ObservableProperty]
-    private string _naturalJapanese = "";
-
-    [ObservableProperty]
-    private string _plainJapanese = "";
-
-    [ObservableProperty]
-    private string _politeJapanese = "";
-
-    [ObservableProperty]
-    private string _businessKeigoJapanese = "";
-
-    [ObservableProperty]
-    private string _readingOptimizedJapanese = "";
-
-    [ObservableProperty]
     private string _selectedOutputText = "";
 
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
@@ -155,12 +134,6 @@ public partial class MainWindowViewModel : ViewModelBase
         });
     }
 
-    [RelayCommand]
-    private void RefreshSelectedOutput()
-    {
-        SelectedOutputText = GetTextForSelectedStyle();
-    }
-
     partial void OnSelectedStyleChanged(string value)
     {
         SelectedOutputText = GetTextForSelectedStyle();
@@ -175,13 +148,6 @@ public partial class MainWindowViewModel : ViewModelBase
         _latestAudioSpeakingRate = null;
 
         SummaryText = result.SummaryZh;
-        TranslatedJapanese = result.TranslatedJapanese;
-        CorrectedJapanese = result.CorrectedJapanese;
-        NaturalJapanese = result.NaturalJapanese;
-        PlainJapanese = result.PlainFormJapanese;
-        PoliteJapanese = result.PoliteFormJapanese;
-        BusinessKeigoJapanese = result.BusinessKeigoJapanese;
-        ReadingOptimizedJapanese = result.ReadingOptimizedJapanese;
         SelectedOutputText = GetTextForSelectedStyle();
 
         Issues.Clear();

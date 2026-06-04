@@ -68,33 +68,20 @@
 
             <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
                 <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
                         <TextBlock Text="分析结果" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="180" MinHeight="34"/>
-                        <Button Grid.Column="2" Content="刷新输出" Command="{Binding RefreshSelectedOutputCommand}"/>
                     </Grid>
 
                     <Border Grid.Row="1" Background="#F5F7FA" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
                         <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" Foreground="#344054"/>
                     </Border>
 
-                    <TabControl Grid.Row="2">
-                        <TabItem Header="选中版本">
-                            <TextBox Text="{Binding SelectedOutputText}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
-                        </TabItem>
-                        <TabItem Header="自然版">
-                            <TextBox Text="{Binding NaturalJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
-                        </TabItem>
-                        <TabItem Header="丁寧語">
-                            <TextBox Text="{Binding PoliteJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
-                        </TabItem>
-                        <TabItem Header="商务敬语">
-                            <TextBox Text="{Binding BusinessKeigoJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
-                        </TabItem>
-                        <TabItem Header="朗读优化">
-                            <TextBox Text="{Binding ReadingOptimizedJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
-                        </TabItem>
-                    </TabControl>
+                    <TextBox Grid.Row="2"
+                             Text="{Binding SelectedOutputText}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             IsReadOnly="True"/>
 
                 </Grid>
             </Border>
