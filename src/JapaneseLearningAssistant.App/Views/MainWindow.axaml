@@ -152,8 +152,11 @@
                         </ListBox>
                     </Border>
 
-                    <TabControl Grid.Row="4" IsVisible="{Binding IsCompactLayout}">
-                        <TabItem Header="逐句">
+                    <TabControl Grid.Row="4" IsVisible="{Binding IsCompactLayout}" FontSize="14">
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="逐句" FontSize="14" FontWeight="SemiBold"/>
+                            </TabItem.Header>
                             <Border Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4">
                                 <ListBox ItemsSource="{Binding SentenceAudioItems}"
                                          SelectedItem="{Binding SelectedSentenceAudioItem}"
@@ -178,7 +181,10 @@
                                 </ListBox>
                             </Border>
                         </TabItem>
-                        <TabItem Header="问题">
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="问题" FontSize="14" FontWeight="SemiBold"/>
+                            </TabItem.Header>
                             <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
                                 <ListBox ItemsSource="{Binding Issues}">
                                     <ListBox.ItemTemplate>
@@ -197,7 +203,10 @@
                                 </ListBox>
                             </Border>
                         </TabItem>
-                        <TabItem Header="历史">
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="历史" FontSize="14" FontWeight="SemiBold"/>
+                            </TabItem.Header>
                             <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
                                 <ListBox ItemsSource="{Binding HistoryItems}">
                                     <ListBox.ItemTemplate>
