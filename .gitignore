@@ -1,0 +1,33 @@
+# Build outputs
+bin/
+obj/
+
+# User and IDE files
+.DS_Store
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+TestResults/
+
+# NuGet
+*.nupkg
+packages/
+
+# App-local generated data
+audio/
+history.json
+
+# Secrets and local environment
+.env
+appsettings.Local.json
+secrets.json

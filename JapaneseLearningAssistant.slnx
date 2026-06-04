@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JapaneseLearningAssistant.App/JapaneseLearningAssistant.App.csproj" />
+    <Project Path="src/JapaneseLearningAssistant.Cli/JapaneseLearningAssistant.Cli.csproj" />
+    <Project Path="src/JapaneseLearningAssistant.Core/JapaneseLearningAssistant.Core.csproj" />
+  </Folder>
+</Solution>

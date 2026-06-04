@@ -1,0 +1,147 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:JapaneseLearningAssistant.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="820"
+        x:Class="JapaneseLearningAssistant.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="日语学习助手 MVP"
+        Width="1280"
+        Height="820"
+        MinWidth="1040"
+        MinHeight="680">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto" Background="#F6F7F9">
+        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,0,0,1" Padding="18,14">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel>
+                    <TextBlock Text="日语学习助手" FontSize="22" FontWeight="SemiBold" Foreground="#172033"/>
+                    <TextBlock Text="中文/日语输入，Gemini 分析纠错，Google TTS 生成日语朗读" Foreground="#5F6B7A" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <ProgressBar Width="120" Height="6" IsIndeterminate="True" IsVisible="{Binding IsBusy}"/>
+                    <Button Content="分析" Command="{Binding AnalyzeCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
+                    <Button Content="生成语音" Command="{Binding GenerateSpeechCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="110"/>
+                    <Button Content="播放" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="80"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="360,*,320" ColumnSpacing="14" Margin="14">
+            <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="输入" FontSize="16" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <ComboBox ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding SelectedLanguageMode}" MinHeight="34"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}" MinHeight="34"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <TextBox Grid.Row="1"
+                             Text="{Binding InputText}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalContentAlignment="Top"
+                             PlaceholderText="输入中文或日语..."/>
+
+                    <StackPanel Grid.Row="2" Spacing="8">
+                        <TextBlock Text="TTS 设置" FontWeight="SemiBold"/>
+                        <ComboBox ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinHeight="34"/>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="语速" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1" Minimum="0.6" Maximum="1.2" Value="{Binding SpeakingRate}" TickFrequency="0.05"/>
+                            <TextBlock Grid.Column="2" Text="{Binding SpeakingRate, StringFormat={}{0:F2}}" VerticalAlignment="Center" MinWidth="38"/>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <TextBlock Text="分析结果" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="180" MinHeight="34"/>
+                        <Button Grid.Column="2" Content="刷新输出" Command="{Binding RefreshSelectedOutputCommand}"/>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="#F5F7FA" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" Foreground="#344054"/>
+                    </Border>
+
+                    <TabControl Grid.Row="2">
+                        <TabItem Header="选中版本">
+                            <TextBox Text="{Binding SelectedOutputText}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
+                        </TabItem>
+                        <TabItem Header="自然版">
+                            <TextBox Text="{Binding NaturalJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
+                        </TabItem>
+                        <TabItem Header="丁寧語">
+                            <TextBox Text="{Binding PoliteJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
+                        </TabItem>
+                        <TabItem Header="商务敬语">
+                            <TextBox Text="{Binding BusinessKeigoJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
+                        </TabItem>
+                        <TabItem Header="朗读优化">
+                            <TextBox Text="{Binding ReadingOptimizedJapanese}" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"/>
+                        </TabItem>
+                    </TabControl>
+
+                    <TextBlock Grid.Row="3" Text="{Binding AudioFilePath}" Foreground="#5F6B7A" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="2" RowDefinitions="*,220" RowSpacing="14">
+                <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                        <TextBlock Text="问题讲解" FontSize="16" FontWeight="SemiBold"/>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Issues}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:IssueViewModel">
+                                    <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,10">
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="{Binding Type}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="#8A3B12"/>
+                                            <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="#116149"/>
+                                            <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="#344054"/>
+                                            <TextBlock Text="{Binding JlptLevel}" Foreground="#697586"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                        <TextBlock Text="最近历史" FontSize="16" FontWeight="SemiBold"/>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding HistoryItems}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:HistoryItemViewModel">
+                                    <StackPanel Spacing="3" Margin="0,6">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,1,0,0" Padding="14,8">
+            <TextBlock Text="{Binding StatusText}" Foreground="#344054" TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+
+</Window>
