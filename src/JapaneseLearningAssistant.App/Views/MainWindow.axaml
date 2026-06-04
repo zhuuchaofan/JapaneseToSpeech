@@ -20,12 +20,12 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,*,Auto" Background="#F6F7F9">
-        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,0,0,1" Padding="18,14">
+    <Grid RowDefinitions="Auto,*,Auto" Background="#EEF2F6">
+        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,0,0,1" Padding="20,14">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel>
                     <TextBlock Text="日语学习助手" FontSize="22" FontWeight="SemiBold" Foreground="#172033"/>
-                    <TextBlock Text="中文/日语输入，Gemini 分析纠错，Google TTS 生成日语朗读" Foreground="#5F6B7A" Margin="0,4,0,0"/>
+                    <TextBlock Text="输入、分析、逐句朗读和问题讲解集中在一个学习工作台" Foreground="#5F6B7A" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <ProgressBar Width="120" Height="6" IsIndeterminate="True" IsVisible="{Binding IsBusy}"/>
@@ -35,11 +35,14 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="360,*,320" ColumnSpacing="14" Margin="14">
-            <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+        <Grid Grid.Row="1" ColumnDefinitions="350,*,330" ColumnSpacing="14" Margin="14">
+            <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="输入" FontSize="16" FontWeight="SemiBold"/>
+                        <StackPanel>
+                            <TextBlock Text="输入" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
+                            <TextBlock Text="选择场景后输入中文或日语" FontSize="12" Foreground="#697586" Margin="0,2,0,0"/>
+                        </StackPanel>
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <ComboBox ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding SelectedLanguageMode}" MinHeight="34"/>
                             <ComboBox Grid.Column="1" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}" MinHeight="34"/>
@@ -55,23 +58,25 @@
                              PlaceholderText="输入中文或日语..."/>
 
                     <StackPanel Grid.Row="2" Spacing="8">
-                        <TextBlock Text="TTS 设置" FontWeight="SemiBold"/>
+                        <TextBlock Text="朗读设置" FontWeight="SemiBold" Foreground="#172033"/>
                         <ComboBox ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinHeight="34"/>
                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                             <TextBlock Text="语速" VerticalAlignment="Center"/>
                             <Slider Grid.Column="1" Minimum="0.6" Maximum="1.2" Value="{Binding SpeakingRate}" TickFrequency="0.05"/>
                             <TextBlock Grid.Column="2" Text="{Binding SpeakingRate, StringFormat={}{0:F2}}" VerticalAlignment="Center" MinWidth="38"/>
                         </Grid>
-                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                            <Button Content="{Binding PlayAudioButtonText}" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
-                            <Button Grid.Column="1" Content="停止" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" MinWidth="64"/>
-                            <Slider Grid.Column="2"
-                                    Minimum="0"
-                                    Maximum="{Binding PlaybackDurationSeconds}"
-                                    Value="{Binding PlaybackPositionSeconds}"
-                                    IsEnabled="{Binding HasLoadedAudio}"/>
-                            <TextBlock Grid.Column="3" Text="{Binding PlaybackTimeText}" VerticalAlignment="Center" MinWidth="82"/>
-                        </Grid>
+                        <Border Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                                <Button Content="{Binding PlayAudioButtonText}" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
+                                <Button Grid.Column="1" Content="停止" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" MinWidth="64"/>
+                                <Slider Grid.Column="2"
+                                        Minimum="0"
+                                        Maximum="{Binding PlaybackDurationSeconds}"
+                                        Value="{Binding PlaybackPositionSeconds}"
+                                        IsEnabled="{Binding HasLoadedAudio}"/>
+                                <TextBlock Grid.Column="3" Text="{Binding PlaybackTimeText}" VerticalAlignment="Center" MinWidth="82"/>
+                            </Grid>
+                        </Border>
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
                             <TextBlock Text="整段模式" VerticalAlignment="Center"/>
                             <ComboBox Grid.Column="1"
@@ -83,10 +88,13 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+            <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
                 <Grid RowDefinitions="Auto,Auto,*,Auto,220" RowSpacing="12">
-                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
-                        <TextBlock Text="分析结果" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <StackPanel>
+                            <TextBlock Text="分析与朗读文本" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
+                            <TextBlock Text="切换版本后，逐句列表会自动刷新" FontSize="12" Foreground="#697586" Margin="0,2,0,0"/>
+                        </StackPanel>
                         <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="180" MinHeight="34"/>
                     </Grid>
 
@@ -100,16 +108,19 @@
                              TextWrapping="Wrap"
                              IsReadOnly="True"/>
 
-                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
-                        <Button Content="上一句" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
-                        <Button Grid.Column="1" Content="播放当前句" Command="{Binding PlaySelectedSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
-                        <Button Grid.Column="2" Content="下一句" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
-                        <ComboBox Grid.Column="3"
-                                  ItemsSource="{Binding SentencePlaybackModes}"
-                                  SelectedItem="{Binding SelectedSentencePlaybackMode}"
-                                  MinHeight="34"
-                                  MinWidth="118"/>
-                    </Grid>
+                    <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                            <Button Content="上一句" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
+                            <Button Grid.Column="1" Content="播放当前句" Command="{Binding PlaySelectedSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
+                            <Button Grid.Column="2" Content="下一句" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
+                            <TextBlock Grid.Column="3" Text="双击句子可直接播放" Foreground="#697586" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="4"
+                                      ItemsSource="{Binding SentencePlaybackModes}"
+                                      SelectedItem="{Binding SelectedSentencePlaybackMode}"
+                                      MinHeight="34"
+                                      MinWidth="118"/>
+                        </Grid>
+                    </Border>
 
                     <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4">
                         <ListBox ItemsSource="{Binding SentenceAudioItems}"
@@ -117,12 +128,19 @@
                                  DoubleTapped="SentenceListBox_DoubleTapped">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:SentenceAudioItemViewModel">
-                                    <Grid ColumnDefinitions="24,36,*,Auto" ColumnSpacing="8" Margin="8,6">
-                                        <TextBlock Text="{Binding CurrentMarker}" Foreground="#2563EB" FontWeight="SemiBold" VerticalAlignment="Top"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding IndexText}" Foreground="#697586" VerticalAlignment="Top"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" Foreground="#172033"/>
-                                        <TextBlock Grid.Column="3" Text="{Binding AudioStatusText}" Foreground="#116149" VerticalAlignment="Top"/>
-                                    </Grid>
+                                    <Border Background="{Binding CurrentBackground}"
+                                            BorderBrush="{Binding CurrentBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="8"
+                                            Margin="6,4">
+                                        <Grid ColumnDefinitions="24,36,*,Auto" ColumnSpacing="8">
+                                            <TextBlock Text="{Binding CurrentMarker}" Foreground="#2563EB" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding IndexText}" Foreground="#697586" VerticalAlignment="Top"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" Foreground="#172033"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding AudioStatusText}" Foreground="#116149" VerticalAlignment="Top"/>
+                                        </Grid>
+                                    </Border>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -132,9 +150,12 @@
             </Border>
 
             <Grid Grid.Column="2" RowDefinitions="*,220" RowSpacing="14">
-                <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+                <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
                     <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                        <TextBlock Text="问题讲解" FontSize="16" FontWeight="SemiBold"/>
+                        <StackPanel>
+                            <TextBlock Text="问题讲解" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
+                            <TextBlock Text="语法、表达和示例说明" FontSize="12" Foreground="#697586" Margin="0,2,0,0"/>
+                        </StackPanel>
                         <ListBox Grid.Row="1" ItemsSource="{Binding Issues}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:IssueViewModel">
@@ -153,9 +174,9 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+                <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
                     <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                        <TextBlock Text="最近历史" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="最近历史" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
                         <ListBox Grid.Row="1" ItemsSource="{Binding HistoryItems}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:HistoryItemViewModel">

@@ -711,10 +711,14 @@ public sealed partial class SentenceAudioItemViewModel : ObservableObject
     public string Text { get; }
     public string IndexText => $"{Index + 1}.";
     public string CurrentMarker => IsCurrent ? "▶" : "";
+    public string CurrentBackground => IsCurrent ? "#EAF4FF" : "#FFFFFF";
+    public string CurrentBorderBrush => IsCurrent ? "#4C8DFF" : "#E1E5EC";
     public string AudioStatusText => IsAudioReady ? "已缓存" : "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentMarker))]
+    [NotifyPropertyChangedFor(nameof(CurrentBackground))]
+    [NotifyPropertyChangedFor(nameof(CurrentBorderBrush))]
     private bool _isCurrent;
 
     [ObservableProperty]
