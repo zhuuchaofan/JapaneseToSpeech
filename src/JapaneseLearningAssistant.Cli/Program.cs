@@ -28,7 +28,14 @@ var config = LocalAppConfig.Load();
 var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JapaneseLearningAssistant");
 
 var gemini = new GoogleGeminiClient(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GeminiApiKey, config.GeminiModel);
-var tts = new GoogleTextToSpeechService(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GoogleTtsApiKey, Path.Combine(appData, "audio"));
+var googleTts = new GoogleTextToSpeechService(
+    new HttpClient { Timeout = TimeSpan.FromSeconds(120) },
+    config.GoogleTtsApiKey,
+    Path.Combine(appData, "audio-temp"));
+var tts = new TtsAudioCacheService(
+    googleTts,
+    Path.Combine(appData, "audio-cache"),
+    "GoogleCloudTextToSpeech");
 var history = new HistoryStore(appData);
 
 try

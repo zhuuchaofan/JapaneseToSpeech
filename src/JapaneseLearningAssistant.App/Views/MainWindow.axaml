@@ -78,7 +78,7 @@
             </Border>
 
             <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
-                <Grid RowDefinitions="Auto,Auto,*" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,*,Auto,220" RowSpacing="12">
                     <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
                         <TextBlock Text="分析结果" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="180" MinHeight="34"/>
@@ -93,6 +93,29 @@
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              IsReadOnly="True"/>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                        <Button Content="上一句" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
+                        <Button Grid.Column="1" Content="播放当前句" Command="{Binding PlaySelectedSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
+                        <Button Grid.Column="2" Content="下一句" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
+                        <CheckBox Grid.Column="3" Content="自动下一句" IsChecked="{Binding AutoPlayNextSentence}" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4">
+                        <ListBox ItemsSource="{Binding SentenceAudioItems}"
+                                 SelectedItem="{Binding SelectedSentenceAudioItem}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SentenceAudioItemViewModel">
+                                    <Grid ColumnDefinitions="24,36,*,Auto" ColumnSpacing="8" Margin="8,6">
+                                        <TextBlock Text="{Binding CurrentMarker}" Foreground="#2563EB" FontWeight="SemiBold" VerticalAlignment="Top"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding IndexText}" Foreground="#697586" VerticalAlignment="Top"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" Foreground="#172033"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding AudioStatusText}" Foreground="#116149" VerticalAlignment="Top"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
 
                 </Grid>
             </Border>

@@ -28,6 +28,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string? _latestAudioVoiceName;
     private double? _latestAudioSpeakingRate;
     private bool _isUpdatingPlaybackPosition;
+    private bool _isSentencePlaybackActive;
 
     public MainWindowViewModel()
         : this(CreateGeminiClient(), CreateTtsService(), CreateHistoryStore(), new NAudioPlaybackService())
@@ -115,6 +116,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
+    public ObservableCollection<SentenceAudioItemViewModel> SentenceAudioItems { get; } = [];
+
+    [ObservableProperty]
+    private SentenceAudioItemViewModel? _selectedSentenceAudioItem;
+
+    [ObservableProperty]
+    private SentenceAudioItemViewModel? _currentSentenceAudioItem;
+
+    [ObservableProperty]
+    private bool _autoPlayNextSentence = true;
 
     [RelayCommand]
     private async Task AnalyzeAsync()
@@ -153,6 +164,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task PlayAudioAsync()
     {
+        _isSentencePlaybackActive = false;
         var text = GetTextForSelectedStyle();
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -180,26 +192,70 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void StopAudio()
     {
+        _isSentencePlaybackActive = false;
         _audioPlaybackService.Stop();
         UpdatePlaybackProgress();
         UpdateAudioStateProperties();
         StatusText = "播放已停止。";
     }
 
+    [RelayCommand]
+    private async Task PlaySelectedSentenceAsync()
+    {
+        var sentence = SelectedSentenceAudioItem ?? CurrentSentenceAudioItem ?? SentenceAudioItems.FirstOrDefault();
+        if (sentence is null)
+        {
+            StatusText = "请先分析文本，生成可逐句播放的内容。";
+            return;
+        }
+
+        await PlaySentenceAsync(sentence, CancellationToken.None);
+    }
+
+    [RelayCommand]
+    private async Task PlayPreviousSentenceAsync()
+    {
+        var sentence = GetRelativeSentence(-1);
+        if (sentence is null)
+        {
+            StatusText = "已经是第一句。";
+            return;
+        }
+
+        await PlaySentenceAsync(sentence, CancellationToken.None);
+    }
+
+    [RelayCommand]
+    private async Task PlayNextSentenceAsync()
+    {
+        var sentence = GetRelativeSentence(1);
+        if (sentence is null)
+        {
+            StatusText = "已经是最后一句。";
+            return;
+        }
+
+        await PlaySentenceAsync(sentence, CancellationToken.None);
+    }
+
     partial void OnSelectedStyleChanged(string value)
     {
+        _isSentencePlaybackActive = false;
         StopCurrentPlayback();
         SelectedOutputText = GetTextForSelectedStyle();
+        RefreshSentenceItems();
     }
 
     partial void OnSelectedVoiceChanged(string value)
     {
         InvalidateCurrentAudio();
+        InvalidateSentenceAudio();
     }
 
     partial void OnSpeakingRateChanged(double value)
     {
         InvalidateCurrentAudio();
+        InvalidateSentenceAudio();
     }
 
     partial void OnIsAudioPlayingChanged(bool value)
@@ -230,6 +286,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         SummaryText = result.SummaryZh;
         SelectedOutputText = GetTextForSelectedStyle();
+        RefreshSentenceItems();
 
         Issues.Clear();
         foreach (var issue in result.Issues)
@@ -276,6 +333,24 @@ public partial class MainWindowViewModel : ViewModelBase
         return audio;
     }
 
+    private async Task GenerateSpeechForSentenceAsync(SentenceAudioItemViewModel sentence, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(sentence.AudioFilePath) && File.Exists(sentence.AudioFilePath))
+        {
+            return;
+        }
+
+        var audio = await _textToSpeechService.GenerateAsync(new TtsRequest
+        {
+            Text = sentence.Text,
+            VoiceName = SelectedVoice,
+            SpeakingRate = SpeakingRate
+        }, cancellationToken);
+
+        sentence.AudioFilePath = audio.FilePath;
+        sentence.IsAudioReady = true;
+    }
+
     private bool HasPlayableAudioFor(string text)
     {
         return !string.IsNullOrWhiteSpace(_latestAudioFilePath)
@@ -298,6 +373,103 @@ public partial class MainWindowViewModel : ViewModelBase
             _audioPlaybackService.Load(_latestAudioFilePath);
             UpdatePlaybackProgress();
             UpdateAudioStateProperties();
+        }
+    }
+
+    private async Task PlaySentenceAsync(SentenceAudioItemViewModel sentence, CancellationToken cancellationToken)
+    {
+        if (CurrentSentenceAudioItem == sentence
+            && !string.IsNullOrWhiteSpace(sentence.AudioFilePath)
+            && string.Equals(_audioPlaybackService.LoadedFilePath, sentence.AudioFilePath, StringComparison.Ordinal)
+            && _audioPlaybackService.State is AudioPlaybackState.Playing or AudioPlaybackState.Paused)
+        {
+            _isSentencePlaybackActive = true;
+            TogglePlayback();
+            return;
+        }
+
+        await RunBusyAsync($"正在准备第 {sentence.Index + 1} 句语音...", async token =>
+        {
+            await GenerateSpeechForSentenceAsync(sentence, token);
+            if (string.IsNullOrWhiteSpace(sentence.AudioFilePath))
+            {
+                throw new FileNotFoundException("句子音频文件不存在。", sentence.AudioFilePath);
+            }
+
+            SetCurrentSentence(sentence);
+            _isSentencePlaybackActive = true;
+            _audioPlaybackService.Load(sentence.AudioFilePath);
+            _audioPlaybackService.Play();
+            UpdatePlaybackProgress();
+            UpdateAudioStateProperties();
+            StatusText = $"正在播放第 {sentence.Index + 1} 句。";
+        });
+    }
+
+    private async Task PlayNextSentenceFromPlaybackEndAsync()
+    {
+        var next = GetRelativeSentence(1);
+        if (next is null)
+        {
+            _isSentencePlaybackActive = false;
+            StatusText = "逐句播放完成。";
+            UpdatePlaybackProgress();
+            UpdateAudioStateProperties();
+            return;
+        }
+
+        await PlaySentenceAsync(next, CancellationToken.None);
+    }
+
+    private SentenceAudioItemViewModel? GetRelativeSentence(int offset)
+    {
+        var current = CurrentSentenceAudioItem ?? SelectedSentenceAudioItem ?? SentenceAudioItems.FirstOrDefault();
+        if (current is null)
+        {
+            return null;
+        }
+
+        var nextIndex = current.Index + offset;
+        return SentenceAudioItems.FirstOrDefault(item => item.Index == nextIndex);
+    }
+
+    private void SetCurrentSentence(SentenceAudioItemViewModel? sentence)
+    {
+        if (CurrentSentenceAudioItem is not null)
+        {
+            CurrentSentenceAudioItem.IsCurrent = false;
+        }
+
+        CurrentSentenceAudioItem = sentence;
+        SelectedSentenceAudioItem = sentence;
+
+        if (CurrentSentenceAudioItem is not null)
+        {
+            CurrentSentenceAudioItem.IsCurrent = true;
+        }
+    }
+
+    private void RefreshSentenceItems()
+    {
+        SentenceAudioItems.Clear();
+        SetCurrentSentence(null);
+
+        var sentences = SentenceSplitter.Split(SelectedOutputText);
+        for (var i = 0; i < sentences.Count; i++)
+        {
+            SentenceAudioItems.Add(new SentenceAudioItemViewModel(i, sentences[i]));
+        }
+
+        SelectedSentenceAudioItem = SentenceAudioItems.FirstOrDefault();
+    }
+
+    private void InvalidateSentenceAudio()
+    {
+        _isSentencePlaybackActive = false;
+        foreach (var sentence in SentenceAudioItems)
+        {
+            sentence.AudioFilePath = "";
+            sentence.IsAudioReady = false;
         }
     }
 
@@ -339,15 +511,20 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnPlaybackEnded(object? sender, EventArgs e)
     {
-        Dispatcher.UIThread.Post(() =>
+        Dispatcher.UIThread.Post(async () =>
         {
             if (IsLoopAudio)
             {
                 _audioPlaybackService.Play();
                 StatusText = "正在循环播放。";
             }
+            else if (_isSentencePlaybackActive && AutoPlayNextSentence)
+            {
+                await PlayNextSentenceFromPlaybackEndAsync();
+            }
             else
             {
+                _isSentencePlaybackActive = false;
                 StatusText = "播放完成。";
             }
 
@@ -437,13 +614,19 @@ public partial class MainWindowViewModel : ViewModelBase
         return new GoogleGeminiClient(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GeminiApiKey, config.GeminiModel);
     }
 
-    private static GoogleTextToSpeechService CreateTtsService()
+    private static ITextToSpeechService CreateTtsService()
     {
         var config = LocalAppConfig.Load();
-        return new GoogleTextToSpeechService(
+        var appDataDirectory = GetAppDataDirectory();
+        var googleTts = new GoogleTextToSpeechService(
             new HttpClient { Timeout = TimeSpan.FromSeconds(120) },
             config.GoogleTtsApiKey,
-            Path.Combine(GetAppDataDirectory(), "audio"));
+            Path.Combine(appDataDirectory, "audio-temp"));
+
+        return new TtsAudioCacheService(
+            googleTts,
+            Path.Combine(appDataDirectory, "audio-cache"),
+            "GoogleCloudTextToSpeech");
     }
 
     private static HistoryStore CreateHistoryStore() => new(GetAppDataDirectory());
@@ -477,6 +660,32 @@ public sealed class IssueViewModel
     public string JlptLevel { get; }
     public string ExampleJapanese { get; }
     public string ExampleChinese { get; }
+}
+
+public sealed partial class SentenceAudioItemViewModel : ObservableObject
+{
+    public SentenceAudioItemViewModel(int index, string text)
+    {
+        Index = index;
+        Text = text;
+    }
+
+    public int Index { get; }
+    public string Text { get; }
+    public string IndexText => $"{Index + 1}.";
+    public string CurrentMarker => IsCurrent ? "▶" : "";
+    public string AudioStatusText => IsAudioReady ? "已缓存" : "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentMarker))]
+    private bool _isCurrent;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AudioStatusText))]
+    private bool _isAudioReady;
+
+    [ObservableProperty]
+    private string _audioFilePath = "";
 }
 
 public sealed class HistoryItemViewModel
