@@ -72,7 +72,13 @@
                                     IsEnabled="{Binding HasLoadedAudio}"/>
                             <TextBlock Grid.Column="3" Text="{Binding PlaybackTimeText}" VerticalAlignment="Center" MinWidth="82"/>
                         </Grid>
-                        <CheckBox Content="循环当前音频" IsChecked="{Binding IsLoopAudio}"/>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="整段模式" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding WholeAudioPlaybackModes}"
+                                      SelectedItem="{Binding SelectedWholeAudioPlaybackMode}"
+                                      MinHeight="34"/>
+                        </Grid>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -98,12 +104,17 @@
                         <Button Content="上一句" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
                         <Button Grid.Column="1" Content="播放当前句" Command="{Binding PlaySelectedSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
                         <Button Grid.Column="2" Content="下一句" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
-                        <CheckBox Grid.Column="3" Content="自动下一句" IsChecked="{Binding AutoPlayNextSentence}" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="3"
+                                  ItemsSource="{Binding SentencePlaybackModes}"
+                                  SelectedItem="{Binding SelectedSentencePlaybackMode}"
+                                  MinHeight="34"
+                                  MinWidth="118"/>
                     </Grid>
 
                     <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4">
                         <ListBox ItemsSource="{Binding SentenceAudioItems}"
-                                 SelectedItem="{Binding SelectedSentenceAudioItem}">
+                                 SelectedItem="{Binding SelectedSentenceAudioItem}"
+                                 DoubleTapped="SentenceListBox_DoubleTapped">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:SentenceAudioItemViewModel">
                                     <Grid ColumnDefinitions="24,36,*,Auto" ColumnSpacing="8" Margin="8,6">

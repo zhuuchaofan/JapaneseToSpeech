@@ -98,7 +98,7 @@ internal sealed class GoogleTtsVoice
 internal sealed class GoogleTtsAudioConfig
 {
     public string AudioEncoding { get; set; } = "MP3";
-    public double SpeakingRate { get; set; } = 0.85;
+    public double SpeakingRate { get; set; } = 1;
     public double Pitch { get; set; }
 }
 

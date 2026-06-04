@@ -38,7 +38,7 @@ cp appsettings.Local.example.json appsettings.Local.json
   "geminiApiKey": "你的 Gemini API Key",
   "googleTtsApiKey": "你的 Google Cloud Text-to-Speech API Key",
   "geminiModel": "gemini-3.5-flash",
-  "googleTtsVoiceName": "ja-JP-Neural2-B"
+  "googleTtsVoiceName": "ja-JP-Neural2-C"
 }
 ```
 

@@ -60,6 +60,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public string[] Scenarios { get; } = ["日语学习", "作文练习", "口语稿", "邮件", "自我介绍", "JLPT 练习"];
     public string[] Styles { get; } = ["修正版", "自然版", "普通体", "丁寧語", "商务敬语", "朗读优化"];
     public string[] Voices { get; } = ["ja-JP-Neural2-B", "ja-JP-Neural2-C", "ja-JP-Wavenet-B", "ja-JP-Wavenet-C"];
+    public string[] WholeAudioPlaybackModes { get; } = ["播放一次", "循环整段"];
+    public string[] SentencePlaybackModes { get; } = ["当前句一次", "自动下一句", "单句循环"];
 
     [ObservableProperty]
     private string _inputText = "";
@@ -77,7 +79,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedVoice = LocalAppConfig.Load().GoogleTtsVoiceName;
 
     [ObservableProperty]
-    private double _speakingRate = 0.85;
+    private double _speakingRate = 1;
 
     [ObservableProperty]
     private bool _isBusy;
@@ -101,7 +103,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _hasLoadedAudio;
 
     [ObservableProperty]
-    private bool _isLoopAudio;
+    private string _selectedWholeAudioPlaybackMode = "播放一次";
 
     [ObservableProperty]
     private double _playbackPositionSeconds;
@@ -125,7 +127,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private SentenceAudioItemViewModel? _currentSentenceAudioItem;
 
     [ObservableProperty]
-    private bool _autoPlayNextSentence = true;
+    private string _selectedSentencePlaybackMode = "自动下一句";
 
     [RelayCommand]
     private async Task AnalyzeAsync()
@@ -513,14 +515,19 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Dispatcher.UIThread.Post(async () =>
         {
-            if (IsLoopAudio)
+            if (_isSentencePlaybackActive && IsSentenceLoopMode())
             {
                 _audioPlaybackService.Play();
-                StatusText = "正在循环播放。";
+                StatusText = $"正在循环第 {CurrentSentenceAudioItem?.Index + 1 ?? 1} 句。";
             }
-            else if (_isSentencePlaybackActive && AutoPlayNextSentence)
+            else if (_isSentencePlaybackActive && ShouldAutoPlayNextSentence())
             {
                 await PlayNextSentenceFromPlaybackEndAsync();
+            }
+            else if (ShouldLoopWholeAudio())
+            {
+                _audioPlaybackService.Play();
+                StatusText = "正在循环整段。";
             }
             else
             {
@@ -531,6 +538,21 @@ public partial class MainWindowViewModel : ViewModelBase
             UpdatePlaybackProgress();
             UpdateAudioStateProperties();
         });
+    }
+
+    private bool ShouldLoopWholeAudio()
+    {
+        return string.Equals(SelectedWholeAudioPlaybackMode, "循环整段", StringComparison.Ordinal);
+    }
+
+    private bool ShouldAutoPlayNextSentence()
+    {
+        return string.Equals(SelectedSentencePlaybackMode, "自动下一句", StringComparison.Ordinal);
+    }
+
+    private bool IsSentenceLoopMode()
+    {
+        return string.Equals(SelectedSentencePlaybackMode, "单句循环", StringComparison.Ordinal);
     }
 
     private void OnPlaybackStateChanged(object? sender, EventArgs e)

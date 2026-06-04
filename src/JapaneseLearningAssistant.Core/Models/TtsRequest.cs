@@ -4,8 +4,8 @@ public sealed class TtsRequest
 {
     public string Text { get; init; } = "";
     public string LanguageCode { get; init; } = "ja-JP";
-    public string VoiceName { get; init; } = "ja-JP-Neural2-B";
-    public double SpeakingRate { get; init; } = 0.85;
+    public string VoiceName { get; init; } = "ja-JP-Neural2-C";
+    public double SpeakingRate { get; init; } = 1;
     public double Pitch { get; init; }
     public string AudioFormat { get; init; } = "MP3";
 }
