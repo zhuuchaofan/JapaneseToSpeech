@@ -214,7 +214,7 @@
                                         <DataTemplate x:DataType="vm:IssueViewModel">
                                             <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,10">
                                                 <StackPanel Spacing="5">
-                                                    <TextBlock Text="{Binding Type}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
                                                     <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="#8A3B12"/>
                                                     <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="#116149"/>
                                                     <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="#344054"/>
@@ -260,7 +260,7 @@
                                 <DataTemplate x:DataType="vm:IssueViewModel">
                                     <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,10">
                                         <StackPanel Spacing="5">
-                                            <TextBlock Text="{Binding Type}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="#8A3B12"/>
                                             <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="#116149"/>
                                             <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="#344054"/>
