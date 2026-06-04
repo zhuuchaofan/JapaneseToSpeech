@@ -1,5 +1,6 @@
-using System.Net.Http.Json;
 using System.Text.Json;
+using Google.GenAI;
+using Google.GenAI.Types;
 using JapaneseLearningAssistant.Core.Models;
 
 namespace JapaneseLearningAssistant.Core.Services;
@@ -15,7 +16,7 @@ public sealed class GoogleGeminiClient : IGeminiClient
     private readonly string _apiKey;
     private readonly string _model;
 
-    public GoogleGeminiClient(HttpClient httpClient, string apiKey, string model = "gemini-2.5-flash")
+    public GoogleGeminiClient(HttpClient httpClient, string apiKey, string model = "gemini-3.5-flash")
     {
         _httpClient = httpClient;
         _apiKey = apiKey;
@@ -29,47 +30,49 @@ public sealed class GoogleGeminiClient : IGeminiClient
             throw new InvalidOperationException("缺少 Gemini API Key。请在 appsettings.Local.json 的 geminiApiKey 中配置，或设置 GEMINI_API_KEY 环境变量。");
         }
 
-        var prompt = JapaneseAnalysisPrompt.Build(request);
-        var body = new GeminiGenerateRequest
+        try
         {
-            Contents =
-            [
-                new GeminiContent
-                {
-                    Parts = [new GeminiPart { Text = prompt }]
-                }
-            ],
-            GenerationConfig = new GeminiGenerationConfig
+            var prompt = JapaneseAnalysisPrompt.Build(request);
+            var client = new Client(apiKey: _apiKey);
+            var config = new GenerateContentConfig
             {
-                Temperature = 0.2,
-                ResponseMimeType = "application/json"
+                Temperature = 0.2f,
+                ResponseMimeType = "application/json",
+                ThinkingConfig = new ThinkingConfig
+                {
+                    ThinkingLevel = "MEDIUM"
+                }
+            };
+
+            var response = await client.Models.GenerateContentAsync(
+                model: _model,
+                contents: prompt,
+                config: config,
+                cancellationToken: cancellationToken);
+
+            var generated = response.Candidates
+                ?.FirstOrDefault()
+                ?.Content
+                ?.Parts
+                ?.FirstOrDefault()
+                ?.Text;
+
+            if (string.IsNullOrWhiteSpace(generated))
+            {
+                throw new InvalidOperationException("Gemini API 没有返回可解析的文本。");
             }
-        };
 
-        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={Uri.EscapeDataString(_apiKey)}";
-        using var response = await _httpClient.PostAsJsonAsync(endpoint, body, JsonOptions, cancellationToken);
-        var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new InvalidOperationException(GoogleApiErrorFormatter.Format("Gemini API", response.StatusCode, response.ReasonPhrase, responseText));
+            return JsonSerializer.Deserialize<JapaneseAnalysisResult>(generated, JsonOptions)
+                ?? throw new InvalidOperationException("Gemini 返回的 JSON 无法解析为分析结果。");
         }
-
-        var generated = JsonSerializer.Deserialize<GeminiGenerateResponse>(responseText, JsonOptions)
-            ?.Candidates
-            ?.FirstOrDefault()
-            ?.Content
-            ?.Parts
-            ?.FirstOrDefault()
-            ?.Text;
-
-        if (string.IsNullOrWhiteSpace(generated))
+        catch (JsonException ex)
         {
-            throw new InvalidOperationException("Gemini API 没有返回可解析的文本。");
+            throw new InvalidOperationException($"Gemini 返回的 JSON 无法解析：{ex.Message}", ex);
         }
-
-        return JsonSerializer.Deserialize<JapaneseAnalysisResult>(generated, JsonOptions)
-            ?? throw new InvalidOperationException("Gemini 返回的 JSON 无法解析为分析结果。");
+        catch (Exception ex) when (ex is not InvalidOperationException)
+        {
+            throw new InvalidOperationException(GoogleApiErrorFormatter.FormatSdkException("Gemini API", ex), ex);
+        }
     }
 }
 
@@ -141,36 +144,4 @@ JSON 结构必须是：
 {{request.Text}}
 """;
     }
-}
-
-internal sealed class GeminiGenerateRequest
-{
-    public List<GeminiContent> Contents { get; set; } = [];
-    public GeminiGenerationConfig GenerationConfig { get; set; } = new();
-}
-
-internal sealed class GeminiGenerationConfig
-{
-    public double Temperature { get; set; }
-    public string ResponseMimeType { get; set; } = "application/json";
-}
-
-internal sealed class GeminiContent
-{
-    public List<GeminiPart> Parts { get; set; } = [];
-}
-
-internal sealed class GeminiPart
-{
-    public string Text { get; set; } = "";
-}
-
-internal sealed class GeminiGenerateResponse
-{
-    public List<GeminiCandidate> Candidates { get; set; } = [];
-}
-
-internal sealed class GeminiCandidate
-{
-    public GeminiContent Content { get; set; } = new();
 }

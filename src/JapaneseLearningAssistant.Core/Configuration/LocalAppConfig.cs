@@ -6,7 +6,7 @@ public sealed class LocalAppConfig
 {
     public string GeminiApiKey { get; set; } = "";
     public string GoogleTtsApiKey { get; set; } = "";
-    public string GeminiModel { get; set; } = "gemini-2.5-flash";
+    public string GeminiModel { get; set; } = "gemini-3.5-flash";
     public string GoogleTtsVoiceName { get; set; } = "ja-JP-Neural2-B";
 
     public static LocalAppConfig Load()
@@ -15,7 +15,7 @@ public sealed class LocalAppConfig
 
         config.GeminiApiKey = FirstNonEmpty(config.GeminiApiKey, Environment.GetEnvironmentVariable("GEMINI_API_KEY"));
         config.GoogleTtsApiKey = FirstNonEmpty(config.GoogleTtsApiKey, Environment.GetEnvironmentVariable("GOOGLE_TTS_API_KEY"));
-        config.GeminiModel = FirstNonEmpty(config.GeminiModel, Environment.GetEnvironmentVariable("GEMINI_MODEL"), "gemini-2.5-flash");
+        config.GeminiModel = FirstNonEmpty(config.GeminiModel, Environment.GetEnvironmentVariable("GEMINI_MODEL"), "gemini-3.5-flash");
         config.GoogleTtsVoiceName = FirstNonEmpty(config.GoogleTtsVoiceName, Environment.GetEnvironmentVariable("GOOGLE_TTS_VOICE_NAME"), "ja-JP-Neural2-B");
 
         return config;

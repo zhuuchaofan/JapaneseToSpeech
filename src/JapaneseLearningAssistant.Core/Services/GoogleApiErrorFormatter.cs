@@ -52,4 +52,37 @@ internal static class GoogleApiErrorFormatter
 
         return friendly;
     }
+
+    public static string FormatSdkException(string serviceName, Exception exception)
+    {
+        var message = exception.Message;
+
+        if (message.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("prepayment credits are depleted", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("429", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{serviceName} 额度不足或请求过多。API Key 可能是有效的，但对应项目的额度/预付费余额不可用，或触发了限流。\n\nSDK 返回：{message}";
+        }
+
+        if (message.Contains("API_KEY_INVALID", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("UNAUTHENTICATED", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("401", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{serviceName} API Key 无效或未授权。请检查 appsettings.Local.json。\n\nSDK 返回：{message}";
+        }
+
+        if (message.Contains("PERMISSION_DENIED", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("403", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{serviceName} 权限不足或服务未启用。请检查项目权限、API 启用状态和 Key 限制。\n\nSDK 返回：{message}";
+        }
+
+        if (message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("404", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{serviceName} 模型不存在或当前 Key 无权访问该模型。请检查 geminiModel 配置。\n\nSDK 返回：{message}";
+        }
+
+        return $"{serviceName} 调用失败。\n\nSDK 返回：{message}";
+    }
 }
