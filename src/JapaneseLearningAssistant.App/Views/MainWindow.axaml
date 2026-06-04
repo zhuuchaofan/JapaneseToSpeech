@@ -30,7 +30,7 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <ProgressBar Width="120" Height="6" IsIndeterminate="True" IsVisible="{Binding IsBusy}"/>
                     <Button Content="分析" Command="{Binding AnalyzeCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
-                    <Button Content="播放" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
+                    <Button Content="{Binding PlayAudioButtonText}" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -62,6 +62,17 @@
                             <Slider Grid.Column="1" Minimum="0.6" Maximum="1.2" Value="{Binding SpeakingRate}" TickFrequency="0.05"/>
                             <TextBlock Grid.Column="2" Text="{Binding SpeakingRate, StringFormat={}{0:F2}}" VerticalAlignment="Center" MinWidth="38"/>
                         </Grid>
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                            <Button Content="{Binding PlayAudioButtonText}" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="72"/>
+                            <Button Grid.Column="1" Content="停止" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" MinWidth="64"/>
+                            <Slider Grid.Column="2"
+                                    Minimum="0"
+                                    Maximum="{Binding PlaybackDurationSeconds}"
+                                    Value="{Binding PlaybackPositionSeconds}"
+                                    IsEnabled="{Binding HasLoadedAudio}"/>
+                            <TextBlock Grid.Column="3" Text="{Binding PlaybackTimeText}" VerticalAlignment="Center" MinWidth="82"/>
+                        </Grid>
+                        <CheckBox Content="循环当前音频" IsChecked="{Binding IsLoopAudio}"/>
                     </StackPanel>
                 </Grid>
             </Border>

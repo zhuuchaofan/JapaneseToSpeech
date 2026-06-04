@@ -5,8 +5,10 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using JapaneseLearningAssistant.App.Services;
 using JapaneseLearningAssistant.Core.Configuration;
 using JapaneseLearningAssistant.Core.Models;
 using JapaneseLearningAssistant.Core.Services;
@@ -18,25 +20,38 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IGeminiClient _geminiClient;
     private readonly ITextToSpeechService _textToSpeechService;
     private readonly HistoryStore _historyStore;
+    private readonly IAudioPlaybackService _audioPlaybackService;
+    private readonly DispatcherTimer _playbackTimer;
     private JapaneseAnalysisResult? _latestResult;
     private string? _latestAudioFilePath;
     private string? _latestAudioSourceText;
     private string? _latestAudioVoiceName;
     private double? _latestAudioSpeakingRate;
+    private bool _isUpdatingPlaybackPosition;
 
     public MainWindowViewModel()
-        : this(CreateGeminiClient(), CreateTtsService(), CreateHistoryStore())
+        : this(CreateGeminiClient(), CreateTtsService(), CreateHistoryStore(), new NAudioPlaybackService())
     {
     }
 
     public MainWindowViewModel(
         IGeminiClient geminiClient,
         ITextToSpeechService textToSpeechService,
-        HistoryStore historyStore)
+        HistoryStore historyStore,
+        IAudioPlaybackService audioPlaybackService)
     {
         _geminiClient = geminiClient;
         _textToSpeechService = textToSpeechService;
         _historyStore = historyStore;
+        _audioPlaybackService = audioPlaybackService;
+        _audioPlaybackService.PlaybackEnded += OnPlaybackEnded;
+        _audioPlaybackService.StateChanged += OnPlaybackStateChanged;
+        _playbackTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(250)
+        };
+        _playbackTimer.Tick += (_, _) => UpdatePlaybackProgress();
+        _playbackTimer.Start();
         _ = LoadHistoryAsync();
     }
 
@@ -74,6 +89,29 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _selectedOutputText = "";
+
+    [ObservableProperty]
+    private bool _isAudioPlaying;
+
+    [ObservableProperty]
+    private bool _isAudioPaused;
+
+    [ObservableProperty]
+    private bool _hasLoadedAudio;
+
+    [ObservableProperty]
+    private bool _isLoopAudio;
+
+    [ObservableProperty]
+    private double _playbackPositionSeconds;
+
+    [ObservableProperty]
+    private double _playbackDurationSeconds;
+
+    [ObservableProperty]
+    private string _playbackTimeText = "00:00 / 00:00";
+
+    public string PlayAudioButtonText => IsAudioPlaying ? "暂停" : IsAudioPaused ? "继续" : "播放";
 
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
@@ -122,30 +160,73 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (HasPlayableAudioFor(text))
+        {
+            EnsureLatestAudioLoaded();
+            TogglePlayback();
+            return;
+        }
+
         await RunBusyAsync("语音生成中...", async cancellationToken =>
         {
-            if (!HasPlayableAudioFor(text))
-            {
-                await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
-            }
-
-            LocalAudioPlayer.Play(_latestAudioFilePath ?? "");
+            await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
+            EnsureLatestAudioLoaded();
+            _audioPlaybackService.Play();
+            UpdateAudioStateProperties();
             StatusText = "正在播放。";
         });
     }
 
+    [RelayCommand]
+    private void StopAudio()
+    {
+        _audioPlaybackService.Stop();
+        UpdatePlaybackProgress();
+        UpdateAudioStateProperties();
+        StatusText = "播放已停止。";
+    }
+
     partial void OnSelectedStyleChanged(string value)
     {
+        StopCurrentPlayback();
         SelectedOutputText = GetTextForSelectedStyle();
+    }
+
+    partial void OnSelectedVoiceChanged(string value)
+    {
+        InvalidateCurrentAudio();
+    }
+
+    partial void OnSpeakingRateChanged(double value)
+    {
+        InvalidateCurrentAudio();
+    }
+
+    partial void OnIsAudioPlayingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PlayAudioButtonText));
+    }
+
+    partial void OnIsAudioPausedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PlayAudioButtonText));
+    }
+
+    partial void OnPlaybackPositionSecondsChanged(double value)
+    {
+        if (_isUpdatingPlaybackPosition || PlaybackDurationSeconds <= 0)
+        {
+            return;
+        }
+
+        _audioPlaybackService.Seek(TimeSpan.FromSeconds(value));
+        UpdatePlaybackProgress();
     }
 
     private void ApplyAnalysisResult(JapaneseAnalysisResult result)
     {
         _latestResult = result;
-        _latestAudioFilePath = null;
-        _latestAudioSourceText = null;
-        _latestAudioVoiceName = null;
-        _latestAudioSpeakingRate = null;
+        InvalidateCurrentAudio();
 
         SummaryText = result.SummaryZh;
         SelectedOutputText = GetTextForSelectedStyle();
@@ -203,6 +284,108 @@ public partial class MainWindowViewModel : ViewModelBase
             && string.Equals(_latestAudioVoiceName, SelectedVoice, StringComparison.Ordinal)
             && _latestAudioSpeakingRate.HasValue
             && Math.Abs(_latestAudioSpeakingRate.Value - SpeakingRate) < 0.001;
+    }
+
+    private void EnsureLatestAudioLoaded()
+    {
+        if (string.IsNullOrWhiteSpace(_latestAudioFilePath))
+        {
+            throw new FileNotFoundException("音频文件不存在。", _latestAudioFilePath);
+        }
+
+        if (!string.Equals(_audioPlaybackService.LoadedFilePath, _latestAudioFilePath, StringComparison.Ordinal))
+        {
+            _audioPlaybackService.Load(_latestAudioFilePath);
+            UpdatePlaybackProgress();
+            UpdateAudioStateProperties();
+        }
+    }
+
+    private void TogglePlayback()
+    {
+        if (_audioPlaybackService.State == AudioPlaybackState.Playing)
+        {
+            _audioPlaybackService.Pause();
+            StatusText = "播放已暂停。";
+        }
+        else
+        {
+            _audioPlaybackService.Play();
+            StatusText = "正在播放。";
+        }
+
+        UpdateAudioStateProperties();
+    }
+
+    private void InvalidateCurrentAudio()
+    {
+        StopCurrentPlayback();
+        _latestAudioFilePath = null;
+        _latestAudioSourceText = null;
+        _latestAudioVoiceName = null;
+        _latestAudioSpeakingRate = null;
+    }
+
+    private void StopCurrentPlayback()
+    {
+        if (_audioPlaybackService.State is AudioPlaybackState.Playing or AudioPlaybackState.Paused)
+        {
+            _audioPlaybackService.Stop();
+        }
+
+        UpdatePlaybackProgress();
+        UpdateAudioStateProperties();
+    }
+
+    private void OnPlaybackEnded(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (IsLoopAudio)
+            {
+                _audioPlaybackService.Play();
+                StatusText = "正在循环播放。";
+            }
+            else
+            {
+                StatusText = "播放完成。";
+            }
+
+            UpdatePlaybackProgress();
+            UpdateAudioStateProperties();
+        });
+    }
+
+    private void OnPlaybackStateChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(UpdateAudioStateProperties);
+    }
+
+    private void UpdateAudioStateProperties()
+    {
+        IsAudioPlaying = _audioPlaybackService.State == AudioPlaybackState.Playing;
+        IsAudioPaused = _audioPlaybackService.State == AudioPlaybackState.Paused;
+        HasLoadedAudio = _audioPlaybackService.State != AudioPlaybackState.Empty;
+        OnPropertyChanged(nameof(PlayAudioButtonText));
+    }
+
+    private void UpdatePlaybackProgress()
+    {
+        var duration = _audioPlaybackService.Duration;
+        var position = _audioPlaybackService.Position;
+
+        _isUpdatingPlaybackPosition = true;
+        PlaybackDurationSeconds = duration.TotalSeconds;
+        PlaybackPositionSeconds = Math.Min(position.TotalSeconds, Math.Max(duration.TotalSeconds, 0));
+        PlaybackTimeText = $"{FormatDuration(position)} / {FormatDuration(duration)}";
+        _isUpdatingPlaybackPosition = false;
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        return duration.TotalHours >= 1
+            ? duration.ToString(@"h\:mm\:ss")
+            : duration.ToString(@"mm\:ss");
     }
 
     private async Task RunBusyAsync(string busyText, Func<CancellationToken, Task> operation)
