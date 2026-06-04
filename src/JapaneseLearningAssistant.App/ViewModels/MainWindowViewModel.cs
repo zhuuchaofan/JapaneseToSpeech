@@ -20,6 +20,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly HistoryStore _historyStore;
     private JapaneseAnalysisResult? _latestResult;
     private string? _latestAudioFilePath;
+    private string? _latestAudioSourceText;
+    private string? _latestAudioVoiceName;
+    private double? _latestAudioSpeakingRate;
 
     public MainWindowViewModel()
         : this(CreateGeminiClient(), CreateTtsService(), CreateHistoryStore())
@@ -145,31 +148,32 @@ public partial class MainWindowViewModel : ViewModelBase
 
         await RunBusyAsync("正在生成日语语音...", async cancellationToken =>
         {
-            var audio = await _textToSpeechService.GenerateAsync(new TtsRequest
-            {
-                Text = text,
-                VoiceName = SelectedVoice,
-                SpeakingRate = SpeakingRate
-            }, cancellationToken);
-
-            _latestAudioFilePath = audio.FilePath;
-            AudioFilePath = audio.FilePath;
+            var audio = await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
             StatusText = $"语音已生成：{audio.FilePath}";
         });
     }
 
     [RelayCommand]
-    private void PlayAudio()
+    private async Task PlayAudioAsync()
     {
-        try
+        var text = GetTextForSelectedStyle();
+        if (string.IsNullOrWhiteSpace(text))
         {
+            StatusText = "请先分析文本，或选择一个有内容的输出版本。";
+            return;
+        }
+
+        await RunBusyAsync("正在准备日语语音...", async cancellationToken =>
+        {
+            if (!HasPlayableAudioFor(text))
+            {
+                StatusText = "当前版本还没有音频，正在生成后播放...";
+                await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
+            }
+
             LocalAudioPlayer.Play(AudioFilePath);
             StatusText = "正在播放音频。";
-        }
-        catch (Exception ex)
-        {
-            StatusText = ex.Message;
-        }
+        });
     }
 
     [RelayCommand]
@@ -187,6 +191,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _latestResult = result;
         _latestAudioFilePath = null;
+        _latestAudioSourceText = null;
+        _latestAudioVoiceName = null;
+        _latestAudioSpeakingRate = null;
         AudioFilePath = "";
 
         SummaryText = result.SummaryZh;
@@ -225,6 +232,34 @@ public partial class MainWindowViewModel : ViewModelBase
         };
 
         return _latestResult.GetTextForStyle(style);
+    }
+
+    private async Task<AudioGenerationResult> GenerateSpeechForCurrentSelectionAsync(string text, CancellationToken cancellationToken)
+    {
+        var audio = await _textToSpeechService.GenerateAsync(new TtsRequest
+        {
+            Text = text,
+            VoiceName = SelectedVoice,
+            SpeakingRate = SpeakingRate
+        }, cancellationToken);
+
+        _latestAudioFilePath = audio.FilePath;
+        _latestAudioSourceText = text;
+        _latestAudioVoiceName = SelectedVoice;
+        _latestAudioSpeakingRate = SpeakingRate;
+        AudioFilePath = audio.FilePath;
+
+        return audio;
+    }
+
+    private bool HasPlayableAudioFor(string text)
+    {
+        return !string.IsNullOrWhiteSpace(_latestAudioFilePath)
+            && File.Exists(_latestAudioFilePath)
+            && string.Equals(_latestAudioSourceText, text, StringComparison.Ordinal)
+            && string.Equals(_latestAudioVoiceName, SelectedVoice, StringComparison.Ordinal)
+            && _latestAudioSpeakingRate.HasValue
+            && Math.Abs(_latestAudioSpeakingRate.Value - SpeakingRate) < 0.001;
     }
 
     private async Task RunBusyAsync(string busyText, Func<CancellationToken, Task> operation)

@@ -91,7 +91,7 @@ dotnet run --project src/JapaneseLearningAssistant.Cli/JapaneseLearningAssistant
 - 日语修正版、自然版、普通体、丁寧語、商务敬语、朗读优化版
 - 中文错误讲解
 - Google 日语 TTS 生成 MP3
-- 本地音频播放
+- 点击播放时自动生成当前版本语音并播放
 - 最近历史记录
 
 ## 已知限制
