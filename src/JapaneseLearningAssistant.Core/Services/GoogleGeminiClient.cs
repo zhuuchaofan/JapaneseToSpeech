@@ -26,7 +26,7 @@ public sealed class GoogleGeminiClient : IGeminiClient
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
-            throw new InvalidOperationException("缺少 GEMINI_API_KEY 环境变量。");
+            throw new InvalidOperationException("缺少 Gemini API Key。请在 appsettings.Local.json 的 geminiApiKey 中配置，或设置 GEMINI_API_KEY 环境变量。");
         }
 
         var prompt = JapaneseAnalysisPrompt.Build(request);
@@ -52,7 +52,7 @@ public sealed class GoogleGeminiClient : IGeminiClient
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"Gemini API 调用失败：{(int)response.StatusCode} {response.ReasonPhrase}\n{responseText}");
+            throw new InvalidOperationException(GoogleApiErrorFormatter.Format("Gemini API", response.StatusCode, response.ReasonPhrase, responseText));
         }
 
         var generated = JsonSerializer.Deserialize<GeminiGenerateResponse>(responseText, JsonOptions)

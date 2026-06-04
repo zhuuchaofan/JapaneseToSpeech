@@ -23,7 +23,7 @@ public sealed class GoogleTextToSpeechService : ITextToSpeechService
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
-            throw new InvalidOperationException("缺少 GOOGLE_TTS_API_KEY 环境变量。");
+            throw new InvalidOperationException("缺少 Google TTS API Key。请在 appsettings.Local.json 的 googleTtsApiKey 中配置，或设置 GOOGLE_TTS_API_KEY 环境变量。");
         }
 
         if (string.IsNullOrWhiteSpace(request.Text))
@@ -55,7 +55,7 @@ public sealed class GoogleTextToSpeechService : ITextToSpeechService
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"Google TTS 调用失败：{(int)response.StatusCode} {response.ReasonPhrase}\n{responseText}");
+            throw new InvalidOperationException(GoogleApiErrorFormatter.Format("Google TTS", response.StatusCode, response.ReasonPhrase, responseText));
         }
 
         var result = JsonSerializer.Deserialize<GoogleTtsResponse>(responseText, JsonOptions);
