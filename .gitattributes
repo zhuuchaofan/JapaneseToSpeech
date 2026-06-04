@@ -1,0 +1,13 @@
+* text=auto
+
+*.cs text eol=crlf
+*.axaml text eol=crlf
+*.csproj text eol=crlf
+*.slnx text eol=crlf
+*.json text eol=crlf
+*.md text eol=crlf
+*.gitignore text eol=crlf
+
+*.ico binary
+*.mp3 binary
+*.wav binary
