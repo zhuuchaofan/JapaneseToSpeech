@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 using JapaneseLearningAssistant.App.ViewModels;
 
 namespace JapaneseLearningAssistant.App.Views;
@@ -7,10 +8,12 @@ namespace JapaneseLearningAssistant.App.Views;
 public partial class MainWindow : Window
 {
     private const double CompactLayoutThreshold = 1220;
+    private MainWindowViewModel? _viewModel;
 
     public MainWindow()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
         SizeChanged += OnSizeChanged;
         UpdateLayoutMode(Bounds.Width);
     }
@@ -31,6 +34,43 @@ public partial class MainWindow : Window
         {
             viewModel.IsCompactLayout = isCompact;
         }
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (_viewModel is not null)
+        {
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        }
+
+        _viewModel = DataContext as MainWindowViewModel;
+
+        if (_viewModel is not null)
+        {
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        }
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.CurrentSentenceAudioItem))
+        {
+            ScrollCurrentSentenceIntoView();
+        }
+    }
+
+    private void ScrollCurrentSentenceIntoView()
+    {
+        if (_viewModel?.CurrentSentenceAudioItem is not { } item)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            SentenceListBox.ScrollIntoView(item);
+            CompactSentenceListBox.ScrollIntoView(item);
+        }, DispatcherPriority.Background);
     }
 
     private void SentenceListBox_DoubleTapped(object? sender, TappedEventArgs e)

@@ -61,8 +61,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public string[] Scenarios { get; } = ["日语学习", "作文练习", "口语稿", "邮件", "自我介绍", "JLPT 练习"];
     public string[] Styles { get; } = ["修正版", "自然版", "普通体", "丁寧語", "商务敬语", "朗读优化"];
     public string[] Voices { get; } = ["ja-JP-Neural2-B", "ja-JP-Neural2-C", "ja-JP-Wavenet-B", "ja-JP-Wavenet-C"];
-    public string[] WholeAudioPlaybackModes { get; } = ["播放一次", "循环整段"];
-    public string[] SentencePlaybackModes { get; } = ["当前句一次", "自动下一句", "单句循环"];
+    public string[] WholeAudioPlaybackModes { get; } = ["整段播放一次", "整段循环"];
+    public string[] SentencePlaybackModes { get; } = ["手动逐句", "自动下一句", "单句循环"];
 
     [ObservableProperty]
     private string _inputText = "";
@@ -104,7 +104,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _hasLoadedAudio;
 
     [ObservableProperty]
-    private string _selectedWholeAudioPlaybackMode = "播放一次";
+    private string _selectedWholeAudioPlaybackMode = "整段播放一次";
 
     [ObservableProperty]
     private double _playbackPositionSeconds;
@@ -578,7 +578,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private bool ShouldLoopWholeAudio()
     {
-        return string.Equals(SelectedWholeAudioPlaybackMode, "循环整段", StringComparison.Ordinal);
+        return string.Equals(SelectedWholeAudioPlaybackMode, "整段循环", StringComparison.Ordinal);
     }
 
     private bool ShouldAutoPlayNextSentence()
@@ -745,18 +745,28 @@ public sealed partial class SentenceAudioItemViewModel : ObservableObject
     public string Text { get; }
     public string IndexText => $"{Index + 1}.";
     public string CurrentMarker => IsCurrent ? "▶" : "";
-    public string CurrentBackground => IsCurrent ? "#EAF4FF" : "#FFFFFF";
-    public string CurrentBorderBrush => IsCurrent ? "#4C8DFF" : "#E1E5EC";
-    public string AudioStatusText => IsAudioReady ? "已缓存" : "";
+    public string CurrentBackground => IsCurrent ? "#DBEAFE" : "#FFFFFF";
+    public string CurrentBorderBrush => IsCurrent ? "#2563EB" : "#E1E5EC";
+    public string CurrentIndexBackground => IsCurrent ? "#2563EB" : "#EEF2F6";
+    public string CurrentIndexForeground => IsCurrent ? "#FFFFFF" : "#697586";
+    public string CurrentTextForeground => IsCurrent ? "#0F172A" : "#172033";
+    public string AudioStatusText => IsCurrent ? "当前句" : IsAudioReady ? "已缓存" : "";
+    public string AudioStatusForeground => IsCurrent ? "#1D4ED8" : "#116149";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentMarker))]
     [NotifyPropertyChangedFor(nameof(CurrentBackground))]
     [NotifyPropertyChangedFor(nameof(CurrentBorderBrush))]
+    [NotifyPropertyChangedFor(nameof(CurrentIndexBackground))]
+    [NotifyPropertyChangedFor(nameof(CurrentIndexForeground))]
+    [NotifyPropertyChangedFor(nameof(CurrentTextForeground))]
+    [NotifyPropertyChangedFor(nameof(AudioStatusText))]
+    [NotifyPropertyChangedFor(nameof(AudioStatusForeground))]
     private bool _isCurrent;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AudioStatusText))]
+    [NotifyPropertyChangedFor(nameof(AudioStatusForeground))]
     private bool _isAudioReady;
 
     [ObservableProperty]
