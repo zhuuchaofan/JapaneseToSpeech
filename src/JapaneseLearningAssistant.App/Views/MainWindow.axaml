@@ -87,16 +87,29 @@
                              input:InputMethod.IsInputMethodEnabled="True"
                              PlaceholderText="输入中文或日语..."/>
 
-                    <Expander Grid.Row="2" Header="朗读设置" IsExpanded="False">
-                        <StackPanel Spacing="8" Margin="0,8,0,0">
-                            <ComboBox ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinHeight="34"/>
-                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                                <TextBlock Text="语速" VerticalAlignment="Center"/>
-                                <Slider Grid.Column="1" Minimum="0.6" Maximum="1.2" Value="{Binding SpeakingRate}" TickFrequency="0.05"/>
-                                <TextBlock Grid.Column="2" Text="{Binding SpeakingRate, StringFormat={}{0:F2}}" VerticalAlignment="Center" MinWidth="38"/>
-                            </Grid>
-                        </StackPanel>
-                    </Expander>
+                    <StackPanel Grid.Row="2" Spacing="8">
+                        <Expander Header="AI 设置" IsExpanded="False">
+                            <StackPanel Spacing="8" Margin="0,8,0,0">
+                                <TextBlock Text="分析供应商" Classes="caption"/>
+                                <ComboBox ItemsSource="{Binding AnalysisProviders}" SelectedItem="{Binding SelectedAnalysisProvider}" MinHeight="34"/>
+                                <TextBlock Text="模型" Classes="caption"/>
+                                <TextBox Text="{Binding AnalysisModel}" MinHeight="34"/>
+                                <TextBlock Text="API Key" Classes="caption"/>
+                                <TextBox Text="{Binding AnalysisApiKey}" PasswordChar="*" MinHeight="34" PlaceholderText="仅当前会话使用"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <Expander Header="朗读设置" IsExpanded="False">
+                            <StackPanel Spacing="8" Margin="0,8,0,0">
+                                <ComboBox ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinHeight="34"/>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                                    <TextBlock Text="语速" VerticalAlignment="Center"/>
+                                    <Slider Grid.Column="1" Minimum="0.6" Maximum="1.2" Value="{Binding SpeakingRate}" TickFrequency="0.05"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding SpeakingRate, StringFormat={}{0:F2}}" VerticalAlignment="Center" MinWidth="38"/>
+                                </Grid>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
                 </Grid>
             </Border>
 
