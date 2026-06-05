@@ -19,6 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private static LocalAppConfig CurrentConfig = LocalAppConfig.Load();
 
+    private readonly PromptProfileManager _promptProfileManager = new();
     private readonly ITextToSpeechService _textToSpeechService;
     private readonly HistoryStore _historyStore;
     private IAnalysisClient _analysisClient;
@@ -86,6 +87,12 @@ public partial class MainWindowViewModel : ViewModelBase
         _historyStore = historyStore;
 
         AppLogger.Info("MainWindowViewModel initialized.");
+        foreach (var profile in _promptProfileManager.LoadProfiles())
+        {
+            PromptProfiles.Add(profile);
+        }
+        SelectedPromptProfile = PromptProfiles.FirstOrDefault();
+
         _ = LoadHistoryAsync();
     }
 
@@ -148,6 +155,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
+    public ObservableCollection<PromptProfile> PromptProfiles { get; } = [];
+
+    [ObservableProperty]
+    private PromptProfile? _selectedPromptProfile;
 
     [ObservableProperty]
     private HistoryItemViewModel? _selectedHistoryItem;
@@ -173,7 +184,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 Text = InputText.Trim(),
                 LanguageMode = ParseLanguageMode(SelectedLanguageMode),
                 Scenario = SelectedScenario,
-                TargetStyle = SelectedStyle
+                TargetStyle = SelectedStyle,
+                PromptTemplate = SelectedPromptProfile?.Template ?? ""
             };
 
             var result = await _analysisClient.AnalyzeAsync(request, cancellationToken);

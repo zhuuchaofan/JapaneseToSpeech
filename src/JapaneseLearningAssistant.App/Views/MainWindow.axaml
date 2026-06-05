@@ -151,9 +151,16 @@
                             <TextBlock Text="选择场景后输入中文或日语" Classes="caption" Margin="0,2,0,0"/>
                         </StackPanel>
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <ComboBox ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding SelectedLanguageMode}" MinHeight="34"/>
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}" MinHeight="34"/>
+                            <ComboBox ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding SelectedLanguageMode}" MinHeight="34" HorizontalAlignment="Stretch"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}" MinHeight="34" HorizontalAlignment="Stretch"/>
                         </Grid>
+                        <ComboBox ItemsSource="{Binding PromptProfiles}" SelectedItem="{Binding SelectedPromptProfile}" HorizontalAlignment="Stretch" MinHeight="34" ToolTip.Tip="{Binding SelectedPromptProfile.Description}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                     </StackPanel>
 
                     <TextBox Grid.Row="1"
