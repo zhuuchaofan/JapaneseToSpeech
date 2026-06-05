@@ -168,14 +168,14 @@
                         <Expander Header="AI 设置" IsExpanded="False" Classes="settings-expander">
                             <StackPanel Spacing="8" Margin="0,8,0,0">
                                 <TextBlock Text="分析供应商" Classes="caption"/>
-                                <ComboBox ItemsSource="{Binding AnalysisProviders}" SelectedItem="{Binding SelectedAnalysisProvider}" MinHeight="34" HorizontalAlignment="Stretch"/>
+                                <ComboBox ItemsSource="{Binding AnalysisSettings.AnalysisProviders}" SelectedItem="{Binding AnalysisSettings.SelectedProvider}" MinHeight="34" HorizontalAlignment="Stretch"/>
                                 <TextBlock Text="模型" Classes="caption"/>
-                                <TextBox Text="{Binding AnalysisModel}" MinHeight="34" HorizontalAlignment="Stretch"/>
+                                <TextBox Text="{Binding AnalysisSettings.Model}" MinHeight="34" HorizontalAlignment="Stretch"/>
                                 <TextBlock Text="API Key" Classes="caption"/>
-                                <TextBox Text="{Binding AnalysisApiKey}" PasswordChar="*" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="保存后写入本地配置"/>
+                                <TextBox Text="{Binding AnalysisSettings.ApiKey}" PasswordChar="*" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="保存后写入本地配置"/>
                                 <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,4,0,0">
-                                    <Button Content="测试连接" Command="{Binding TestAnalysisSettingsCommand}" IsEnabled="{Binding !IsBusy}" MinHeight="34"/>
-                                    <Button Grid.Column="1" Content="保存设置" Command="{Binding SaveAnalysisSettingsCommand}" IsEnabled="{Binding !IsBusy}" MinHeight="34"/>
+                                    <Button Content="测试连接" Command="{Binding AnalysisSettings.TestConnectionCommand}" IsEnabled="{Binding !IsBusy}" MinHeight="34"/>
+                                    <Button Grid.Column="1" Content="保存设置" Command="{Binding AnalysisSettings.SaveSettingsCommand}" IsEnabled="{Binding !IsBusy}" MinHeight="34"/>
                                 </Grid>
                             </StackPanel>
                         </Expander>

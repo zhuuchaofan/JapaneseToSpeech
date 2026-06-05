@@ -38,12 +38,23 @@ public partial class MainWindowViewModel : ViewModelBase
     {
     }
 
+    public AnalysisSettingsViewModel AnalysisSettings { get; }
+
     public MainWindowViewModel(
         IAnalysisClient analysisClient,
         ITextToSpeechService textToSpeechService,
         HistoryStore historyStore,
         IAudioPlaybackService audioPlaybackService)
     {
+        AnalysisSettings = new AnalysisSettingsViewModel(
+            CurrentConfig,
+            (newConfig, newClient) =>
+            {
+                CurrentConfig = newConfig;
+                _analysisClient = newClient;
+            },
+            status => StatusText = status,
+            RunBusyAsync);
         _analysisClient = analysisClient;
         _textToSpeechService = textToSpeechService;
         _historyStore = historyStore;
@@ -63,7 +74,6 @@ public partial class MainWindowViewModel : ViewModelBase
     public string[] LanguageModes { get; } = ["自动判断", "中文", "日语"];
     public string[] Scenarios { get; } = ["日常学习", "作文修改", "口语表达", "邮件/商务", "自我介绍", "JLPT 练习"];
     public string[] Styles { get; } = ["修正版", "自然版", "朗读版"];
-    public string[] AnalysisProviders { get; } = ["Gemini", "OpenAI", "DeepSeek", "MiMo"];
     public string[] Voices { get; } = ["ja-JP-Neural2-B", "ja-JP-Neural2-C", "ja-JP-Wavenet-B", "ja-JP-Wavenet-C"];
     public string[] PlaybackScopes { get; } = ["整段", "逐句"];
     public string[] WholeAudioPlaybackModes { get; } = ["整段播放一次", "整段循环"];
@@ -80,15 +90,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _selectedStyle = "自然版";
-
-    [ObservableProperty]
-    private string _selectedAnalysisProvider = NormalizeProviderDisplayName(CurrentConfig.AnalysisProvider);
-
-    [ObservableProperty]
-    private string _analysisModel = GetModelForProvider(CurrentConfig, CurrentConfig.AnalysisProvider);
-
-    [ObservableProperty]
-    private string _analysisApiKey = GetApiKeyForProvider(CurrentConfig, CurrentConfig.AnalysisProvider);
 
     [ObservableProperty]
     private string _selectedVoice = CurrentConfig.GoogleTtsVoiceName;
@@ -173,7 +174,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        _analysisClient = CreateAnalysisClientFromCurrentSettings();
+        _analysisClient = AnalysisSettings.CreateClient();
         await RunBusyAsync($"正在调用 {_analysisClient.ProviderName} 分析文本...", async cancellationToken =>
         {
             AppLogger.Info($"Analysis started. TextLength={InputText.Trim().Length}, LanguageMode={SelectedLanguageMode}, Scenario={SelectedScenario}, TargetStyle={SelectedStyle}.");
@@ -312,47 +313,6 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusText = $"已恢复 {historyItem.CreatedAt:yyyy-MM-dd HH:mm} 的历史记录。";
     }
 
-    [RelayCommand]
-    private async Task TestAnalysisSettingsAsync()
-    {
-        var client = CreateAnalysisClientFromCurrentSettings();
-        await RunBusyAsync($"正在测试 {client.ProviderName} 连接...", async cancellationToken =>
-        {
-            AppLogger.Info($"Analysis settings test started. Provider={SelectedAnalysisProvider}, Model={AnalysisModel}.");
-            var result = await client.AnalyzeAsync(new AnalyzeTextRequest
-            {
-                Text = "今天也一起学习日语。",
-                LanguageMode = InputLanguageMode.Japanese,
-                Scenario = "日常学习",
-                TargetStyle = "自然版"
-            }, cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(result.NaturalJapanese)
-                && string.IsNullOrWhiteSpace(result.CorrectedJapanese)
-                && string.IsNullOrWhiteSpace(result.ReadingOptimizedJapanese))
-            {
-                throw new InvalidOperationException($"{client.ProviderName} 已返回结果，但没有可用的日语文本。");
-            }
-
-            _analysisClient = client;
-            AppLogger.Info($"Analysis settings test succeeded. Provider={client.ProviderName}, Issues={result.Issues.Count}.");
-            StatusText = $"{client.ProviderName} 测试成功。";
-        });
-    }
-
-    [RelayCommand]
-    private void SaveAnalysisSettings()
-    {
-        var config = CloneConfig(CurrentConfig);
-        config.AnalysisProvider = NormalizeProviderDisplayName(SelectedAnalysisProvider);
-        SetProviderOverrides(config, SelectedAnalysisProvider, AnalysisModel, AnalysisApiKey);
-
-        var path = LocalAppConfig.Save(config);
-        CurrentConfig = config;
-        _analysisClient = CreateAnalysisClient(CurrentConfig);
-        StatusText = $"AI 设置已保存到 {path}。";
-    }
-
     partial void OnSelectedStyleChanged(string value)
     {
         SetPlaybackSource(whole: false, sentence: false);
@@ -365,13 +325,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         InvalidateCurrentAudio();
         InvalidateSentenceAudio();
-    }
-
-    partial void OnSelectedAnalysisProviderChanged(string value)
-    {
-        AnalysisModel = GetModelForProvider(CurrentConfig, value);
-        AnalysisApiKey = GetApiKeyForProvider(CurrentConfig, value);
-        StatusText = $"已切换分析供应商为 {NormalizeProviderDisplayName(value)}。";
     }
 
     partial void OnSpeakingRateChanged(double value)
@@ -818,14 +771,6 @@ public partial class MainWindowViewModel : ViewModelBase
         _ => InputLanguageMode.Auto
     };
 
-    private IAnalysisClient CreateAnalysisClientFromCurrentSettings()
-    {
-        var config = CloneConfig(CurrentConfig);
-        config.AnalysisProvider = SelectedAnalysisProvider;
-        SetProviderOverrides(config, SelectedAnalysisProvider, AnalysisModel, AnalysisApiKey);
-        return CreateAnalysisClient(config);
-    }
-
     private static IAnalysisClient CreateAnalysisClient(LocalAppConfig config)
     {
         return AnalysisClientFactory.Create(config);
@@ -852,66 +797,4 @@ public partial class MainWindowViewModel : ViewModelBase
         var baseDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         return Path.Combine(baseDirectory, "JapaneseLearningAssistant");
     }
-
-    private static string NormalizeProviderDisplayName(string value) => value.Trim().ToLowerInvariant() switch
-    {
-        "openai" or "open ai" => "OpenAI",
-        "deepseek" or "deep seek" => "DeepSeek",
-        "mimo" or "mi mo" => "MiMo",
-        _ => "Gemini"
-    };
-
-    private static string GetModelForProvider(LocalAppConfig config, string provider) => NormalizeProviderDisplayName(provider) switch
-    {
-        "OpenAI" => config.OpenAiModel,
-        "DeepSeek" => config.DeepSeekModel,
-        "MiMo" => config.MiMoModel,
-        _ => config.GeminiModel
-    };
-
-    private static string GetApiKeyForProvider(LocalAppConfig config, string provider) => NormalizeProviderDisplayName(provider) switch
-    {
-        "OpenAI" => config.OpenAiApiKey,
-        "DeepSeek" => config.DeepSeekApiKey,
-        "MiMo" => config.MiMoApiKey,
-        _ => config.GeminiApiKey
-    };
-
-    private static void SetProviderOverrides(LocalAppConfig config, string provider, string model, string apiKey)
-    {
-        switch (NormalizeProviderDisplayName(provider))
-        {
-            case "OpenAI":
-                config.OpenAiModel = model;
-                config.OpenAiApiKey = apiKey;
-                break;
-            case "DeepSeek":
-                config.DeepSeekModel = model;
-                config.DeepSeekApiKey = apiKey;
-                break;
-            case "MiMo":
-                config.MiMoModel = model;
-                config.MiMoApiKey = apiKey;
-                break;
-            default:
-                config.GeminiModel = model;
-                config.GeminiApiKey = apiKey;
-                break;
-        }
-    }
-
-    private static LocalAppConfig CloneConfig(LocalAppConfig config) => new()
-    {
-        AnalysisProvider = config.AnalysisProvider,
-        GeminiApiKey = config.GeminiApiKey,
-        GeminiModel = config.GeminiModel,
-        OpenAiApiKey = config.OpenAiApiKey,
-        OpenAiModel = config.OpenAiModel,
-        DeepSeekApiKey = config.DeepSeekApiKey,
-        DeepSeekModel = config.DeepSeekModel,
-        MiMoApiKey = config.MiMoApiKey,
-        MiMoModel = config.MiMoModel,
-        GoogleTtsApiKey = config.GoogleTtsApiKey,
-        GoogleTtsVoiceName = config.GoogleTtsVoiceName
-    };
 }
