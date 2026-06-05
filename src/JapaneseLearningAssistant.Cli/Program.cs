@@ -47,7 +47,7 @@ try
     {
         Text = text,
         LanguageMode = InputLanguageMode.Auto,
-        Scenario = "日语学习",
+        Scenario = "日常学习",
         TargetStyle = "自然版"
     }, CancellationToken.None);
     AppLogger.Info($"CLI analysis completed. Issues={result.Issues.Count}.");

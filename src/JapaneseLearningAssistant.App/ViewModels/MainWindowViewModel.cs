@@ -59,8 +59,8 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public string[] LanguageModes { get; } = ["自动判断", "中文", "日语"];
-    public string[] Scenarios { get; } = ["日语学习", "作文练习", "口语稿", "邮件", "自我介绍", "JLPT 练习"];
-    public string[] Styles { get; } = ["修正版", "自然版", "普通体", "丁寧語", "商务敬语", "朗读优化"];
+    public string[] Scenarios { get; } = ["日常学习", "作文修改", "口语表达", "邮件/商务", "自我介绍", "JLPT 练习"];
+    public string[] Styles { get; } = ["修正版", "自然版", "朗读版"];
     public string[] Voices { get; } = ["ja-JP-Neural2-B", "ja-JP-Neural2-C", "ja-JP-Wavenet-B", "ja-JP-Wavenet-C"];
     public string[] PlaybackScopes { get; } = ["整段", "逐句"];
     public string[] WholeAudioPlaybackModes { get; } = ["整段播放一次", "整段循环"];
@@ -73,7 +73,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedLanguageMode = "自动判断";
 
     [ObservableProperty]
-    private string _selectedScenario = "日语学习";
+    private string _selectedScenario = "日常学习";
 
     [ObservableProperty]
     private string _selectedStyle = "自然版";
@@ -388,10 +388,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             "修正版" => JapaneseStyle.Corrected,
             "自然版" => JapaneseStyle.Natural,
-            "普通体" => JapaneseStyle.Plain,
-            "丁寧語" => JapaneseStyle.Polite,
-            "商务敬语" => JapaneseStyle.BusinessKeigo,
-            "朗读优化" => JapaneseStyle.ReadingOptimized,
+            "朗读版" => JapaneseStyle.ReadingOptimized,
             _ => JapaneseStyle.Natural
         };
 
