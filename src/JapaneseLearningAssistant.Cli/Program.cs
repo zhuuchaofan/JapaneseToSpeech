@@ -29,7 +29,7 @@ if (string.IsNullOrWhiteSpace(text))
 var config = LocalAppConfig.Load();
 var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JapaneseLearningAssistant");
 
-var gemini = new GoogleGeminiClient(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GeminiApiKey, config.GeminiModel);
+var analysisClient = AnalysisClientFactory.Create(config);
 var googleTts = new GoogleTextToSpeechService(
     new HttpClient { Timeout = TimeSpan.FromSeconds(120) },
     config.GoogleTtsApiKey,
@@ -43,7 +43,7 @@ var history = new HistoryStore(appData);
 try
 {
     AppLogger.Info($"CLI analysis started. TextLength={text.Length}.");
-    var result = await gemini.AnalyzeAsync(new AnalyzeTextRequest
+    var result = await analysisClient.AnalyzeAsync(new AnalyzeTextRequest
     {
         Text = text,
         LanguageMode = InputLanguageMode.Auto,

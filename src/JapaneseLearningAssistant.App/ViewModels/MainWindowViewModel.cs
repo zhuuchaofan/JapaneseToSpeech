@@ -17,7 +17,7 @@ namespace JapaneseLearningAssistant.App.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly IGeminiClient _geminiClient;
+    private readonly IAnalysisClient _analysisClient;
     private readonly ITextToSpeechService _textToSpeechService;
     private readonly HistoryStore _historyStore;
     private readonly IAudioPlaybackService _audioPlaybackService;
@@ -32,17 +32,17 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _isSentencePlaybackActive;
 
     public MainWindowViewModel()
-        : this(CreateGeminiClient(), CreateTtsService(), CreateHistoryStore(), new NAudioPlaybackService())
+        : this(CreateAnalysisClient(), CreateTtsService(), CreateHistoryStore(), new NAudioPlaybackService())
     {
     }
 
     public MainWindowViewModel(
-        IGeminiClient geminiClient,
+        IAnalysisClient analysisClient,
         ITextToSpeechService textToSpeechService,
         HistoryStore historyStore,
         IAudioPlaybackService audioPlaybackService)
     {
-        _geminiClient = geminiClient;
+        _analysisClient = analysisClient;
         _textToSpeechService = textToSpeechService;
         _historyStore = historyStore;
         _audioPlaybackService = audioPlaybackService;
@@ -161,7 +161,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        await RunBusyAsync("正在调用 Gemini 分析文本...", async cancellationToken =>
+        await RunBusyAsync($"正在调用 {_analysisClient.ProviderName} 分析文本...", async cancellationToken =>
         {
             AppLogger.Info($"Analysis started. TextLength={InputText.Trim().Length}, LanguageMode={SelectedLanguageMode}, Scenario={SelectedScenario}, TargetStyle={SelectedStyle}.");
             var request = new AnalyzeTextRequest
@@ -172,7 +172,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 TargetStyle = SelectedStyle
             };
 
-            var result = await _geminiClient.AnalyzeAsync(request, cancellationToken);
+            var result = await _analysisClient.AnalyzeAsync(request, cancellationToken);
             ApplyAnalysisResult(result);
             AppLogger.Info($"Analysis completed. Issues={result.Issues.Count}, SelectedStyle={SelectedStyle}, SentenceCount={SentenceAudioItems.Count}.");
 
@@ -757,10 +757,10 @@ public partial class MainWindowViewModel : ViewModelBase
         _ => InputLanguageMode.Auto
     };
 
-    private static GoogleGeminiClient CreateGeminiClient()
+    private static IAnalysisClient CreateAnalysisClient()
     {
         var config = LocalAppConfig.Load();
-        return new GoogleGeminiClient(new HttpClient { Timeout = TimeSpan.FromSeconds(120) }, config.GeminiApiKey, config.GeminiModel);
+        return AnalysisClientFactory.Create(config);
     }
 
     private static ITextToSpeechService CreateTtsService()
