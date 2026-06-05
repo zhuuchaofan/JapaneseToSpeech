@@ -5,6 +5,11 @@ namespace JapaneseLearningAssistant.Core.Configuration;
 
 public sealed class LocalAppConfig
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true
+    };
+
     public string AnalysisProvider { get; set; } = "Gemini";
     public string GeminiApiKey { get; set; } = "";
     public string GeminiModel { get; set; } = "gemini-3.5-flash";
@@ -39,6 +44,16 @@ public sealed class LocalAppConfig
         return config;
     }
 
+    public static string Save(LocalAppConfig config)
+    {
+        var path = FindLocalConfigPath() ?? Path.Combine(AppContext.BaseDirectory, "appsettings.Local.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? AppContext.BaseDirectory);
+        var json = JsonSerializer.Serialize(config, JsonOptions);
+        File.WriteAllText(path, json);
+        AppLogger.Info($"Local configuration saved. Path={path}, AnalysisProvider={config.AnalysisProvider}.");
+        return path;
+    }
+
     private static LocalAppConfig LoadFromLocalFile()
     {
         var path = FindLocalConfigPath();
@@ -50,7 +65,7 @@ public sealed class LocalAppConfig
 
         AppLogger.Info($"Using local configuration file: {path}");
         var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<LocalAppConfig>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web))
+        return JsonSerializer.Deserialize<LocalAppConfig>(json, JsonOptions)
             ?? new LocalAppConfig();
     }
 

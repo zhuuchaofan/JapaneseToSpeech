@@ -17,7 +17,7 @@ namespace JapaneseLearningAssistant.App.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private static readonly LocalAppConfig StartupConfig = LocalAppConfig.Load();
+    private static LocalAppConfig CurrentConfig = LocalAppConfig.Load();
 
     private readonly ITextToSpeechService _textToSpeechService;
     private readonly HistoryStore _historyStore;
@@ -34,7 +34,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _isSentencePlaybackActive;
 
     public MainWindowViewModel()
-        : this(CreateAnalysisClient(StartupConfig), CreateTtsService(StartupConfig), CreateHistoryStore(), new NAudioPlaybackService())
+        : this(CreateAnalysisClient(CurrentConfig), CreateTtsService(CurrentConfig), CreateHistoryStore(), new NAudioPlaybackService())
     {
     }
 
@@ -82,16 +82,16 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedStyle = "自然版";
 
     [ObservableProperty]
-    private string _selectedAnalysisProvider = NormalizeProviderDisplayName(StartupConfig.AnalysisProvider);
+    private string _selectedAnalysisProvider = NormalizeProviderDisplayName(CurrentConfig.AnalysisProvider);
 
     [ObservableProperty]
-    private string _analysisModel = GetModelForProvider(StartupConfig, StartupConfig.AnalysisProvider);
+    private string _analysisModel = GetModelForProvider(CurrentConfig, CurrentConfig.AnalysisProvider);
 
     [ObservableProperty]
-    private string _analysisApiKey = GetApiKeyForProvider(StartupConfig, StartupConfig.AnalysisProvider);
+    private string _analysisApiKey = GetApiKeyForProvider(CurrentConfig, CurrentConfig.AnalysisProvider);
 
     [ObservableProperty]
-    private string _selectedVoice = StartupConfig.GoogleTtsVoiceName;
+    private string _selectedVoice = CurrentConfig.GoogleTtsVoiceName;
 
     [ObservableProperty]
     private double _speakingRate = 1;
@@ -312,6 +312,47 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusText = $"已恢复 {historyItem.CreatedAt:yyyy-MM-dd HH:mm} 的历史记录。";
     }
 
+    [RelayCommand]
+    private async Task TestAnalysisSettingsAsync()
+    {
+        var client = CreateAnalysisClientFromCurrentSettings();
+        await RunBusyAsync($"正在测试 {client.ProviderName} 连接...", async cancellationToken =>
+        {
+            AppLogger.Info($"Analysis settings test started. Provider={SelectedAnalysisProvider}, Model={AnalysisModel}.");
+            var result = await client.AnalyzeAsync(new AnalyzeTextRequest
+            {
+                Text = "今天也一起学习日语。",
+                LanguageMode = InputLanguageMode.Japanese,
+                Scenario = "日常学习",
+                TargetStyle = "自然版"
+            }, cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(result.NaturalJapanese)
+                && string.IsNullOrWhiteSpace(result.CorrectedJapanese)
+                && string.IsNullOrWhiteSpace(result.ReadingOptimizedJapanese))
+            {
+                throw new InvalidOperationException($"{client.ProviderName} 已返回结果，但没有可用的日语文本。");
+            }
+
+            _analysisClient = client;
+            AppLogger.Info($"Analysis settings test succeeded. Provider={client.ProviderName}, Issues={result.Issues.Count}.");
+            StatusText = $"{client.ProviderName} 测试成功。";
+        });
+    }
+
+    [RelayCommand]
+    private void SaveAnalysisSettings()
+    {
+        var config = CloneConfig(CurrentConfig);
+        config.AnalysisProvider = NormalizeProviderDisplayName(SelectedAnalysisProvider);
+        SetProviderOverrides(config, SelectedAnalysisProvider, AnalysisModel, AnalysisApiKey);
+
+        var path = LocalAppConfig.Save(config);
+        CurrentConfig = config;
+        _analysisClient = CreateAnalysisClient(CurrentConfig);
+        StatusText = $"AI 设置已保存到 {path}。";
+    }
+
     partial void OnSelectedStyleChanged(string value)
     {
         SetPlaybackSource(whole: false, sentence: false);
@@ -328,8 +369,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedAnalysisProviderChanged(string value)
     {
-        AnalysisModel = GetModelForProvider(StartupConfig, value);
-        AnalysisApiKey = GetApiKeyForProvider(StartupConfig, value);
+        AnalysisModel = GetModelForProvider(CurrentConfig, value);
+        AnalysisApiKey = GetApiKeyForProvider(CurrentConfig, value);
         StatusText = $"已切换分析供应商为 {NormalizeProviderDisplayName(value)}。";
     }
 
@@ -779,19 +820,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private IAnalysisClient CreateAnalysisClientFromCurrentSettings()
     {
-        var config = new LocalAppConfig
-        {
-            AnalysisProvider = SelectedAnalysisProvider,
-            GeminiApiKey = StartupConfig.GeminiApiKey,
-            GeminiModel = StartupConfig.GeminiModel,
-            OpenAiApiKey = StartupConfig.OpenAiApiKey,
-            OpenAiModel = StartupConfig.OpenAiModel,
-            DeepSeekApiKey = StartupConfig.DeepSeekApiKey,
-            DeepSeekModel = StartupConfig.DeepSeekModel,
-            MiMoApiKey = StartupConfig.MiMoApiKey,
-            MiMoModel = StartupConfig.MiMoModel
-        };
-
+        var config = CloneConfig(CurrentConfig);
+        config.AnalysisProvider = SelectedAnalysisProvider;
         SetProviderOverrides(config, SelectedAnalysisProvider, AnalysisModel, AnalysisApiKey);
         return CreateAnalysisClient(config);
     }
@@ -869,6 +899,21 @@ public partial class MainWindowViewModel : ViewModelBase
                 break;
         }
     }
+
+    private static LocalAppConfig CloneConfig(LocalAppConfig config) => new()
+    {
+        AnalysisProvider = config.AnalysisProvider,
+        GeminiApiKey = config.GeminiApiKey,
+        GeminiModel = config.GeminiModel,
+        OpenAiApiKey = config.OpenAiApiKey,
+        OpenAiModel = config.OpenAiModel,
+        DeepSeekApiKey = config.DeepSeekApiKey,
+        DeepSeekModel = config.DeepSeekModel,
+        MiMoApiKey = config.MiMoApiKey,
+        MiMoModel = config.MiMoModel,
+        GoogleTtsApiKey = config.GoogleTtsApiKey,
+        GoogleTtsVoiceName = config.GoogleTtsVoiceName
+    };
 }
 
 public sealed class IssueViewModel
