@@ -8,15 +8,13 @@
         x:Class="JapaneseLearningAssistant.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="日语学习助手 MVP"
+        Title="日语学习助手"
         Width="1280"
         Height="820"
         MinWidth="1040"
         MinHeight="680">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
@@ -29,19 +27,27 @@
         <Style Selector="ListBox.sentence-list ListBoxItem:selected">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#172033"/>
+        </Style>
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#697586"/>
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Background="#EEF2F6">
-        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,0,0,1" Padding="20,14">
+        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,0,0,1" Padding="20,12">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel>
                     <TextBlock Text="日语学习助手" FontSize="22" FontWeight="SemiBold" Foreground="#172033"/>
-                    <TextBlock Text="输入、分析、逐句朗读和问题讲解集中在一个学习工作台" Foreground="#5F6B7A" Margin="0,4,0,0"/>
+                    <TextBlock Text="输入、分析、朗读和问题讲解集中在一个学习工作台" Classes="caption" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <ProgressBar Width="120" Height="6" IsIndeterminate="True" IsVisible="{Binding IsBusy}"/>
                     <Button Content="分析" Command="{Binding AnalyzeCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
-                    <Button Content="{Binding PlayAudioButtonText}" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -52,12 +58,13 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="300"/>
             </Grid.ColumnDefinitions>
+
             <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
                     <StackPanel Spacing="10">
                         <StackPanel>
-                            <TextBlock Text="输入" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
-                            <TextBlock Text="选择场景后输入中文或日语" FontSize="12" Foreground="#697586" Margin="0,2,0,0"/>
+                            <TextBlock Text="输入" Classes="section-title"/>
+                            <TextBlock Text="选择场景后输入中文或日语" Classes="caption" Margin="0,2,0,0"/>
                         </StackPanel>
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <ComboBox ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding SelectedLanguageMode}" MinHeight="34"/>
@@ -73,34 +80,16 @@
                              input:InputMethod.IsInputMethodEnabled="True"
                              PlaceholderText="输入中文或日语..."/>
 
-                    <StackPanel Grid.Row="2" Spacing="8">
-                        <TextBlock Text="朗读设置" FontWeight="SemiBold" Foreground="#172033"/>
-                        <ComboBox ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinHeight="34"/>
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                            <TextBlock Text="语速" VerticalAlignment="Center"/>
-                            <Slider Grid.Column="1" Minimum="0.6" Maximum="1.2" Value="{Binding SpeakingRate}" TickFrequency="0.05"/>
-                            <TextBlock Grid.Column="2" Text="{Binding SpeakingRate, StringFormat={}{0:F2}}" VerticalAlignment="Center" MinWidth="38"/>
-                        </Grid>
-                        <Border Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
-                            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                                <Button Content="{Binding PlayAudioIcon}" Command="{Binding PlayAudioCommand}" IsEnabled="{Binding !IsBusy}" Width="38" MinWidth="38" ToolTip.Tip="{Binding PlayAudioButtonText}"/>
-                                <Button Grid.Column="1" Content="■" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" Width="38" MinWidth="38" ToolTip.Tip="停止"/>
-                                <Slider Grid.Column="2"
-                                        Minimum="0"
-                                        Maximum="{Binding PlaybackDurationSeconds}"
-                                        Value="{Binding PlaybackPositionSeconds}"
-                                        IsEnabled="{Binding HasLoadedAudio}"/>
-                                <TextBlock Grid.Column="3" Text="{Binding PlaybackTimeText}" VerticalAlignment="Center" MinWidth="82"/>
+                    <Expander Grid.Row="2" Header="朗读设置" IsExpanded="False">
+                        <StackPanel Spacing="8" Margin="0,8,0,0">
+                            <ComboBox ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinHeight="34"/>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="语速" VerticalAlignment="Center"/>
+                                <Slider Grid.Column="1" Minimum="0.6" Maximum="1.2" Value="{Binding SpeakingRate}" TickFrequency="0.05"/>
+                                <TextBlock Grid.Column="2" Text="{Binding SpeakingRate, StringFormat={}{0:F2}}" VerticalAlignment="Center" MinWidth="38"/>
                             </Grid>
-                        </Border>
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
-                            <TextBlock Text="整段模式" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding WholeAudioPlaybackModes}"
-                                      SelectedItem="{Binding SelectedWholeAudioPlaybackMode}"
-                                      MinHeight="34"/>
-                        </Grid>
-                    </StackPanel>
+                        </StackPanel>
+                    </Expander>
                 </Grid>
             </Border>
 
@@ -108,8 +97,8 @@
                 <Grid RowDefinitions="Auto,Auto,*,Auto,220" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <StackPanel>
-                            <TextBlock Text="分析与朗读文本" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
-                            <TextBlock Text="切换版本后，逐句列表会自动刷新" FontSize="12" Foreground="#697586" Margin="0,2,0,0"/>
+                            <TextBlock Text="分析与朗读文本" Classes="section-title"/>
+                            <TextBlock Text="切换版本后，逐句列表会自动刷新" Classes="caption" Margin="0,2,0,0"/>
                         </StackPanel>
                         <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="180" MinHeight="34"/>
                     </Grid>
@@ -125,17 +114,39 @@
                              IsReadOnly="True"/>
 
                     <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="8">
-                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center">
-                            <Button Content="‹" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" Width="38" MinWidth="38" ToolTip.Tip="上一句"/>
-                            <Button Grid.Column="1" Content="{Binding SentencePlayIcon}" Command="{Binding PlaySelectedSentenceCommand}" IsEnabled="{Binding CanPlaySelectedSentence}" Width="44" MinWidth="44" ToolTip.Tip="{Binding SentencePlayButtonText}"/>
-                            <Button Grid.Column="2" Content="›" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" Width="38" MinWidth="38" ToolTip.Tip="下一句"/>
-                            <TextBlock Grid.Column="3" Text="双击句子播放" Foreground="#697586" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                            <ComboBox Grid.Column="4"
-                                      ItemsSource="{Binding SentencePlaybackModes}"
-                                      SelectedItem="{Binding SelectedSentencePlaybackMode}"
-                                      MinHeight="34"
-                                      Width="116"
-                                      MinWidth="116"/>
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                                <ComboBox ItemsSource="{Binding PlaybackScopes}"
+                                          SelectedItem="{Binding SelectedPlaybackScope}"
+                                          MinHeight="34"
+                                          Width="86"/>
+                                <Button Grid.Column="1" Content="‹" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" ToolTip.Tip="上一句"/>
+                                <Button Grid.Column="2" Content="{Binding PrimaryPlaybackIcon}" Command="{Binding PrimaryPlaybackCommand}" IsEnabled="{Binding CanUsePrimaryPlayback}" Width="42" MinWidth="42" ToolTip.Tip="{Binding PrimaryPlaybackButtonText}"/>
+                                <Button Grid.Column="3" Content="›" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" ToolTip.Tip="下一句"/>
+                                <Slider Grid.Column="4"
+                                        Minimum="0"
+                                        Maximum="{Binding PlaybackDurationSeconds}"
+                                        Value="{Binding PlaybackPositionSeconds}"
+                                        IsEnabled="{Binding HasLoadedAudio}"/>
+                                <TextBlock Grid.Column="5" Text="{Binding PlaybackTimeText}" VerticalAlignment="Center" MinWidth="82"/>
+                            </Grid>
+                            <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <Button Content="■" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" Width="34" MinWidth="34" ToolTip.Tip="停止"/>
+                                <ComboBox Grid.Column="1"
+                                          ItemsSource="{Binding WholeAudioPlaybackModes}"
+                                          SelectedItem="{Binding SelectedWholeAudioPlaybackMode}"
+                                          IsVisible="{Binding IsWholePlaybackScope}"
+                                          HorizontalAlignment="Left"
+                                          MinHeight="32"
+                                          Width="150"/>
+                                <ComboBox Grid.Column="1"
+                                          ItemsSource="{Binding SentencePlaybackModes}"
+                                          SelectedItem="{Binding SelectedSentencePlaybackMode}"
+                                          IsVisible="{Binding IsSentencePlaybackScope}"
+                                          HorizontalAlignment="Left"
+                                          MinHeight="32"
+                                          Width="150"/>
+                            </Grid>
                         </Grid>
                     </Border>
 
@@ -208,7 +219,7 @@
                             <TabItem.Header>
                                 <TextBlock Text="问题" FontSize="14" FontWeight="SemiBold"/>
                             </TabItem.Header>
-                            <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="0,1,0,0" Padding="0,8,0,0">
                                 <ListBox ItemsSource="{Binding Issues}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:IssueViewModel">
@@ -230,7 +241,7 @@
                             <TabItem.Header>
                                 <TextBlock Text="历史" FontSize="14" FontWeight="SemiBold"/>
                             </TabItem.Header>
-                            <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="0,1,0,0" Padding="0,8,0,0">
                                 <ListBox ItemsSource="{Binding HistoryItems}"
                                          SelectedItem="{Binding SelectedHistoryItem}"
                                          DoubleTapped="HistoryListBox_DoubleTapped">
@@ -252,60 +263,62 @@
                             </Border>
                         </TabItem>
                     </TabControl>
-
                 </Grid>
             </Border>
 
-            <Grid Grid.Column="2" RowDefinitions="*,220" RowSpacing="14" IsVisible="{Binding !IsCompactLayout}">
-                <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                        <StackPanel>
-                            <TextBlock Text="问题讲解" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
-                            <TextBlock Text="语法、表达和示例说明" FontSize="12" Foreground="#697586" Margin="0,2,0,0"/>
-                        </StackPanel>
-                        <ListBox Grid.Row="1" ItemsSource="{Binding Issues}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:IssueViewModel">
-                                    <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,10">
-                                        <StackPanel Spacing="5">
-                                            <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
-                                            <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="#8A3B12"/>
-                                            <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="#116149"/>
-                                            <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="#344054"/>
-                                            <TextBlock Text="{Binding JlptLevel}" Foreground="#697586"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
-                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                        <TextBlock Text="最近历史" FontSize="16" FontWeight="SemiBold" Foreground="#172033"/>
-                        <ListBox Grid.Row="1"
-                                 ItemsSource="{Binding HistoryItems}"
-                                 SelectedItem="{Binding SelectedHistoryItem}"
-                                 DoubleTapped="HistoryListBox_DoubleTapped">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:HistoryItemViewModel">
-                                    <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,8">
-                                        <StackPanel Spacing="4">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                <TextBlock Text="{Binding TimeText}" Foreground="#697586" FontSize="12"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="#697586" FontSize="12"/>
-                                            </Grid>
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                            <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Grid>
-                </Border>
-            </Grid>
+            <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16" IsVisible="{Binding !IsCompactLayout}">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <StackPanel>
+                        <TextBlock Text="侧边栏" Classes="section-title"/>
+                        <TextBlock Text="问题讲解和最近历史" Classes="caption" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TabControl Grid.Row="1" FontSize="14">
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="问题" FontSize="14" FontWeight="SemiBold"/>
+                            </TabItem.Header>
+                            <ListBox ItemsSource="{Binding Issues}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:IssueViewModel">
+                                        <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,10">
+                                            <StackPanel Spacing="5">
+                                                <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="#8A3B12"/>
+                                                <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="#116149"/>
+                                                <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="#344054"/>
+                                                <TextBlock Text="{Binding JlptLevel}" Foreground="#697586"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </TabItem>
+                        <TabItem>
+                            <TabItem.Header>
+                                <TextBlock Text="历史" FontSize="14" FontWeight="SemiBold"/>
+                            </TabItem.Header>
+                            <ListBox ItemsSource="{Binding HistoryItems}"
+                                     SelectedItem="{Binding SelectedHistoryItem}"
+                                     DoubleTapped="HistoryListBox_DoubleTapped">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:HistoryItemViewModel">
+                                        <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,8">
+                                            <StackPanel Spacing="4">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                    <TextBlock Text="{Binding TimeText}" Foreground="#697586" FontSize="12"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="#697586" FontSize="12"/>
+                                                </Grid>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
         </Grid>
 
         <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,1,0,0" Padding="14,8">

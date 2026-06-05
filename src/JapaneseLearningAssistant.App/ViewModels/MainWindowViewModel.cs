@@ -62,6 +62,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string[] Scenarios { get; } = ["日语学习", "作文练习", "口语稿", "邮件", "自我介绍", "JLPT 练习"];
     public string[] Styles { get; } = ["修正版", "自然版", "普通体", "丁寧語", "商务敬语", "朗读优化"];
     public string[] Voices { get; } = ["ja-JP-Neural2-B", "ja-JP-Neural2-C", "ja-JP-Wavenet-B", "ja-JP-Wavenet-C"];
+    public string[] PlaybackScopes { get; } = ["整段", "逐句"];
     public string[] WholeAudioPlaybackModes { get; } = ["整段播放一次", "整段循环"];
     public string[] SentencePlaybackModes { get; } = ["手动逐句", "自动下一句", "单句循环"];
 
@@ -108,6 +109,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedWholeAudioPlaybackMode = "整段播放一次";
 
     [ObservableProperty]
+    private string _selectedPlaybackScope = "整段";
+
+    [ObservableProperty]
     private double _playbackPositionSeconds;
 
     [ObservableProperty]
@@ -120,6 +124,11 @@ public partial class MainWindowViewModel : ViewModelBase
     public string PlayAudioIcon => _isWholePlaybackActive && IsAudioPlaying ? "⏸" : "▶";
     public string SentencePlayButtonText => _isSentencePlaybackActive && IsAudioPlaying ? "暂停当前句" : _isSentencePlaybackActive && IsAudioPaused ? "继续当前句" : "播放当前句";
     public string SentencePlayIcon => _isSentencePlaybackActive && IsAudioPlaying ? "⏸" : "▶";
+    public bool IsWholePlaybackScope => string.Equals(SelectedPlaybackScope, "整段", StringComparison.Ordinal);
+    public bool IsSentencePlaybackScope => string.Equals(SelectedPlaybackScope, "逐句", StringComparison.Ordinal);
+    public string PrimaryPlaybackIcon => IsSentencePlaybackScope ? SentencePlayIcon : PlayAudioIcon;
+    public string PrimaryPlaybackButtonText => IsSentencePlaybackScope ? SentencePlayButtonText : PlayAudioButtonText;
+    public bool CanUsePrimaryPlayback => IsSentencePlaybackScope ? CanPlaySelectedSentence : !IsBusy;
     public bool CanPlaySelectedSentence => !IsBusy && SentenceAudioItems.Count > 0;
     public bool CanPlayPreviousSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index > 0;
     public bool CanPlayNextSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index < SentenceAudioItems.Count - 1;
@@ -261,6 +270,18 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task PrimaryPlaybackAsync()
+    {
+        if (IsSentencePlaybackScope)
+        {
+            await PlaySelectedSentenceAsync();
+            return;
+        }
+
+        await PlayAudioAsync();
+    }
+
+    [RelayCommand]
     private void RestoreHistory(HistoryItemViewModel? historyItem)
     {
         historyItem ??= SelectedHistoryItem;
@@ -315,11 +336,18 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnIsBusyChanged(bool value)
     {
         NotifySentenceControlProperties();
+        NotifyPrimaryPlaybackProperties();
     }
 
     partial void OnSelectedSentenceAudioItemChanged(SentenceAudioItemViewModel? value)
     {
         NotifySentenceControlProperties();
+        NotifyPrimaryPlaybackProperties();
+    }
+
+    partial void OnSelectedPlaybackScopeChanged(string value)
+    {
+        NotifyPlaybackScopeProperties();
     }
 
     partial void OnPlaybackPositionSecondsChanged(double value)
@@ -630,6 +658,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(PlayAudioButtonText));
         OnPropertyChanged(nameof(PlayAudioIcon));
         NotifySentenceControlProperties();
+        NotifyPrimaryPlaybackProperties();
     }
 
     private void SetPlaybackSource(bool whole, bool sentence)
@@ -639,6 +668,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(PlayAudioButtonText));
         OnPropertyChanged(nameof(PlayAudioIcon));
         NotifySentenceControlProperties();
+        NotifyPrimaryPlaybackProperties();
     }
 
     private void NotifySentenceControlProperties()
@@ -648,6 +678,21 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanPlaySelectedSentence));
         OnPropertyChanged(nameof(CanPlayPreviousSentence));
         OnPropertyChanged(nameof(CanPlayNextSentence));
+        NotifyPrimaryPlaybackProperties();
+    }
+
+    private void NotifyPlaybackScopeProperties()
+    {
+        OnPropertyChanged(nameof(IsWholePlaybackScope));
+        OnPropertyChanged(nameof(IsSentencePlaybackScope));
+        NotifyPrimaryPlaybackProperties();
+    }
+
+    private void NotifyPrimaryPlaybackProperties()
+    {
+        OnPropertyChanged(nameof(PrimaryPlaybackIcon));
+        OnPropertyChanged(nameof(PrimaryPlaybackButtonText));
+        OnPropertyChanged(nameof(CanUsePrimaryPlayback));
     }
 
     private void UpdatePlaybackProgress()
