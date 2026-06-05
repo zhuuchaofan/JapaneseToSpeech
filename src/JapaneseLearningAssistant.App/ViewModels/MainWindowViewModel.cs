@@ -35,6 +35,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public AnalysisSettingsViewModel AnalysisSettings { get; }
     public PlaybackController Playback { get; }
+    public SentencePlaybackViewModel SentencePlayback { get; }
 
     public MainWindowViewModel(
         IAnalysisClient analysisClient,
@@ -52,13 +53,32 @@ public partial class MainWindowViewModel : ViewModelBase
             status => StatusText = status,
             RunBusyAsync);
         Playback = new PlaybackController(audioPlaybackService);
+        SentencePlayback = new SentencePlaybackViewModel(
+            textToSpeechService,
+            Playback,
+            () => SelectedVoice,
+            () => SpeakingRate,
+            status => StatusText = status,
+            RunBusyAsync);
+
         Playback.PlaybackEnded += OnPlaybackEnded;
         Playback.PropertyChanged += (s, e) =>
         {
             OnPropertyChanged(nameof(PlayAudioButtonText));
             OnPropertyChanged(nameof(PlayAudioIcon));
+            OnPropertyChanged(nameof(SentencePlayButtonText));
+            OnPropertyChanged(nameof(SentencePlayIcon));
             NotifySentenceControlProperties();
             NotifyPrimaryPlaybackProperties();
+        };
+        SentencePlayback.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(SentencePlaybackViewModel.CanPlaySelected) ||
+                e.PropertyName == nameof(SentencePlaybackViewModel.CanPlayPrevious) ||
+                e.PropertyName == nameof(SentencePlaybackViewModel.CanPlayNext))
+            {
+                NotifySentenceControlProperties();
+            }
         };
 
         _analysisClient = analysisClient;
@@ -122,22 +142,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public string PrimaryPlaybackIcon => IsSentencePlaybackScope ? SentencePlayIcon : PlayAudioIcon;
     public string PrimaryPlaybackButtonText => IsSentencePlaybackScope ? SentencePlayButtonText : PlayAudioButtonText;
     public bool CanUsePrimaryPlayback => IsSentencePlaybackScope ? CanPlaySelectedSentence : !IsBusy;
-    public bool CanPlaySelectedSentence => !IsBusy && SentenceAudioItems.Count > 0;
-    public bool CanPlayPreviousSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index > 0;
-    public bool CanPlayNextSentence => !IsBusy && (CurrentSentenceAudioItem ?? SelectedSentenceAudioItem)?.Index < SentenceAudioItems.Count - 1;
+    public bool CanPlaySelectedSentence => !IsBusy && SentencePlayback.CanPlaySelected;
+    public bool CanPlayPreviousSentence => !IsBusy && SentencePlayback.CanPlayPrevious;
+    public bool CanPlayNextSentence => !IsBusy && SentencePlayback.CanPlayNext;
 
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
-    public ObservableCollection<SentenceAudioItemViewModel> SentenceAudioItems { get; } = [];
-
-    [ObservableProperty]
-    private SentenceAudioItemViewModel? _selectedSentenceAudioItem;
-
-    [ObservableProperty]
-    private SentenceAudioItemViewModel? _currentSentenceAudioItem;
-
-    [ObservableProperty]
-    private string _selectedSentencePlaybackMode = "自动下一句";
 
     [ObservableProperty]
     private HistoryItemViewModel? _selectedHistoryItem;
@@ -168,7 +178,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var result = await _analysisClient.AnalyzeAsync(request, cancellationToken);
             ApplyAnalysisResult(result);
-            AppLogger.Info($"Analysis completed. Issues={result.Issues.Count}, SelectedStyle={SelectedStyle}, SentenceCount={SentenceAudioItems.Count}.");
+            AppLogger.Info($"Analysis completed. Issues={result.Issues.Count}, SelectedStyle={SelectedStyle}, SentenceCount={SentencePlayback.Items.Count}.");
 
             await _historyStore.SaveAsync(new HistoryEntry
             {
@@ -218,51 +228,11 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task PlaySelectedSentenceAsync()
-    {
-        var sentence = SelectedSentenceAudioItem ?? CurrentSentenceAudioItem ?? SentenceAudioItems.FirstOrDefault();
-        if (sentence is null)
-        {
-            StatusText = "请先分析文本，生成可逐句播放的内容。";
-            return;
-        }
-
-        AppLogger.Info($"Selected sentence play requested. Index={sentence.Index}, TextLength={sentence.Text.Length}, Mode={SelectedSentencePlaybackMode}.");
-        await PlaySentenceAsync(sentence, CancellationToken.None);
-    }
-
-    [RelayCommand]
-    private async Task PlayPreviousSentenceAsync()
-    {
-        var sentence = GetRelativeSentence(-1);
-        if (sentence is null)
-        {
-            StatusText = "已经是第一句。";
-            return;
-        }
-
-        await PlaySentenceAsync(sentence, CancellationToken.None);
-    }
-
-    [RelayCommand]
-    private async Task PlayNextSentenceAsync()
-    {
-        var sentence = GetRelativeSentence(1);
-        if (sentence is null)
-        {
-            StatusText = "已经是最后一句。";
-            return;
-        }
-
-        await PlaySentenceAsync(sentence, CancellationToken.None);
-    }
-
-    [RelayCommand]
     private async Task PrimaryPlaybackAsync()
     {
         if (IsSentencePlaybackScope)
         {
-            await PlaySelectedSentenceAsync();
+            await SentencePlayback.PlaySelectedCommand.ExecuteAsync(null);
             return;
         }
 
@@ -313,11 +283,6 @@ public partial class MainWindowViewModel : ViewModelBase
         NotifyPrimaryPlaybackProperties();
     }
 
-    partial void OnSelectedSentenceAudioItemChanged(SentenceAudioItemViewModel? value)
-    {
-        NotifySentenceControlProperties();
-        NotifyPrimaryPlaybackProperties();
-    }
 
     partial void OnSelectedPlaybackScopeChanged(string value)
     {
@@ -376,25 +341,6 @@ public partial class MainWindowViewModel : ViewModelBase
         return audio;
     }
 
-    private async Task GenerateSpeechForSentenceAsync(SentenceAudioItemViewModel sentence, CancellationToken cancellationToken)
-    {
-        if (!string.IsNullOrWhiteSpace(sentence.AudioFilePath) && File.Exists(sentence.AudioFilePath))
-        {
-            return;
-        }
-
-        var audio = await _textToSpeechService.GenerateAsync(new TtsRequest
-        {
-            Text = sentence.Text,
-            VoiceName = SelectedVoice,
-            SpeakingRate = SpeakingRate
-        }, cancellationToken);
-
-        sentence.AudioFilePath = audio.FilePath;
-        sentence.IsAudioReady = true;
-        AppLogger.Info($"Sentence audio prepared. Index={sentence.Index}, FilePath={audio.FilePath}, VoiceName={audio.VoiceName}.");
-    }
-
     private bool HasPlayableAudioFor(string text)
     {
         return !string.IsNullOrWhiteSpace(_latestAudioFilePath)
@@ -405,107 +351,14 @@ public partial class MainWindowViewModel : ViewModelBase
             && Math.Abs(_latestAudioSpeakingRate.Value - SpeakingRate) < 0.001;
     }
 
-    private void EnsureLatestAudioLoaded()
-    {
-        // Removed, PlaybackController handles loading directly.
-    }
-
-    private async Task PlaySentenceAsync(SentenceAudioItemViewModel sentence, CancellationToken cancellationToken)
-    {
-        if (CurrentSentenceAudioItem == sentence
-            && !string.IsNullOrWhiteSpace(sentence.AudioFilePath)
-            && string.Equals(Playback.LoadedFilePath, sentence.AudioFilePath, StringComparison.Ordinal)
-            && (Playback.IsPlaying || Playback.IsPaused))
-        {
-            Playback.CurrentScope = PlaybackScope.Sentence;
-            Playback.Toggle();
-            return;
-        }
-
-        await RunBusyAsync($"正在准备第 {sentence.Index + 1} 句语音...", async token =>
-        {
-            await GenerateSpeechForSentenceAsync(sentence, token);
-            if (string.IsNullOrWhiteSpace(sentence.AudioFilePath))
-            {
-                throw new FileNotFoundException("句子音频文件不存在。", sentence.AudioFilePath);
-            }
-
-            SetCurrentSentence(sentence);
-            Playback.Load(sentence.AudioFilePath, PlaybackScope.Sentence);
-            Playback.Play();
-            StatusText = $"正在播放第 {sentence.Index + 1} 句。";
-            AppLogger.Info($"Sentence playback started. Index={sentence.Index}, Mode={SelectedSentencePlaybackMode}.");
-        });
-    }
-
-    private async Task PlayNextSentenceFromPlaybackEndAsync()
-    {
-        var next = GetRelativeSentence(1);
-        if (next is null)
-        {
-            Playback.CurrentScope = PlaybackScope.None;
-            StatusText = "逐句播放完成。";
-            AppLogger.Info("Sentence playback completed at final sentence.");
-            return;
-        }
-
-        await PlaySentenceAsync(next, CancellationToken.None);
-    }
-
-    private SentenceAudioItemViewModel? GetRelativeSentence(int offset)
-    {
-        var current = CurrentSentenceAudioItem ?? SelectedSentenceAudioItem ?? SentenceAudioItems.FirstOrDefault();
-        if (current is null)
-        {
-            return null;
-        }
-
-        var nextIndex = current.Index + offset;
-        return SentenceAudioItems.FirstOrDefault(item => item.Index == nextIndex);
-    }
-
-    private void SetCurrentSentence(SentenceAudioItemViewModel? sentence)
-    {
-        if (CurrentSentenceAudioItem is not null)
-        {
-            CurrentSentenceAudioItem.IsCurrent = false;
-        }
-
-        CurrentSentenceAudioItem = sentence;
-        SelectedSentenceAudioItem = sentence;
-
-        if (CurrentSentenceAudioItem is not null)
-        {
-            CurrentSentenceAudioItem.IsCurrent = true;
-        }
-
-        NotifySentenceControlProperties();
-    }
-
     private void RefreshSentenceItems()
     {
-        SentenceAudioItems.Clear();
-        SetCurrentSentence(null);
-
-        var sentences = SentenceSplitter.Split(SelectedOutputText);
-        for (var i = 0; i < sentences.Count; i++)
-        {
-            SentenceAudioItems.Add(new SentenceAudioItemViewModel(i, sentences[i]));
-        }
-
-        SelectedSentenceAudioItem = SentenceAudioItems.FirstOrDefault();
-        AppLogger.Info($"Sentence items refreshed. Count={SentenceAudioItems.Count}, SelectedStyle={SelectedStyle}.");
-        NotifySentenceControlProperties();
+        SentencePlayback.RefreshItems(SelectedOutputText);
     }
 
     private void InvalidateSentenceAudio()
     {
-        Playback.Stop();
-        foreach (var sentence in SentenceAudioItems)
-        {
-            sentence.AudioFilePath = "";
-            sentence.IsAudioReady = false;
-        }
+        SentencePlayback.InvalidateAudio();
     }
 
     private void InvalidateCurrentAudio()
@@ -519,41 +372,25 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnPlaybackEnded(object? sender, EventArgs e)
     {
-        if (Playback.CurrentScope == PlaybackScope.Sentence && IsSentenceLoopMode())
+        if (Playback.CurrentScope == PlaybackScope.Whole)
         {
-            Playback.Play();
-            StatusText = $"正在循环第 {CurrentSentenceAudioItem?.Index + 1 ?? 1} 句。";
-        }
-        else if (Playback.CurrentScope == PlaybackScope.Sentence && ShouldAutoPlayNextSentence())
-        {
-            _ = PlayNextSentenceFromPlaybackEndAsync();
-        }
-        else if (Playback.CurrentScope == PlaybackScope.Whole && ShouldLoopWholeAudio())
-        {
-            Playback.Play();
-            StatusText = "正在循环整段。";
-        }
-        else
-        {
-            Playback.CurrentScope = PlaybackScope.None;
-            StatusText = "播放完成。";
-            AppLogger.Info("Playback completed.");
+            if (ShouldLoopWholeAudio())
+            {
+                Playback.Play();
+                StatusText = "正在循环整段。";
+            }
+            else
+            {
+                Playback.CurrentScope = PlaybackScope.None;
+                StatusText = "播放完成。";
+                AppLogger.Info("Playback completed.");
+            }
         }
     }
 
     private bool ShouldLoopWholeAudio()
     {
         return string.Equals(SelectedWholeAudioPlaybackMode, "整段循环", StringComparison.Ordinal);
-    }
-
-    private bool ShouldAutoPlayNextSentence()
-    {
-        return string.Equals(SelectedSentencePlaybackMode, "自动下一句", StringComparison.Ordinal);
-    }
-
-    private bool IsSentenceLoopMode()
-    {
-        return string.Equals(SelectedSentencePlaybackMode, "单句循环", StringComparison.Ordinal);
     }
 
     private void NotifySentenceControlProperties()

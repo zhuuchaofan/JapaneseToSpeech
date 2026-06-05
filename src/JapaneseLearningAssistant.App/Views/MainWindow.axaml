@@ -230,13 +230,13 @@
                                       Height="36"
                                       Width="86"
                                       VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Classes="icon-button" ToolTip.Tip="上一句">
+                            <Button Grid.Column="1" Command="{Binding SentencePlayback.PlayPreviousCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Classes="icon-button" ToolTip.Tip="上一句">
                                 <TextBlock Text="‹" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                             <Button Grid.Column="2" Command="{Binding PrimaryPlaybackCommand}" IsEnabled="{Binding CanUsePrimaryPlayback}" Width="42" MinWidth="42" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="{Binding PrimaryPlaybackButtonText}">
                                 <TextBlock Text="{Binding PrimaryPlaybackIcon}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
-                            <Button Grid.Column="3" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Classes="icon-button" ToolTip.Tip="下一句">
+                            <Button Grid.Column="3" Command="{Binding SentencePlayback.PlayNextCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Classes="icon-button" ToolTip.Tip="下一句">
                                 <TextBlock Text="›" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                             <Button Grid.Column="4" Command="{Binding StopAudioCommand}" IsEnabled="{Binding Playback.HasLoadedAudio}" Classes="icon-button" ToolTip.Tip="停止">
@@ -257,8 +257,8 @@
                                       Width="150"
                                       VerticalAlignment="Center"/>
                             <ComboBox Grid.Column="7"
-                                      ItemsSource="{Binding SentencePlaybackModes}"
-                                      SelectedItem="{Binding SelectedSentencePlaybackMode}"
+                                      ItemsSource="{Binding SentencePlayback.PlaybackModes}"
+                                      SelectedItem="{Binding SentencePlayback.PlaybackMode}"
                                       IsVisible="{Binding IsSentencePlaybackScope}"
                                       Height="36"
                                       Width="150"
@@ -272,8 +272,8 @@
                                  Classes="sentence-list"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 ItemsSource="{Binding SentenceAudioItems}"
-                                 SelectedItem="{Binding SelectedSentenceAudioItem}"
+                                 ItemsSource="{Binding SentencePlayback.Items}"
+                                 SelectedItem="{Binding SentencePlayback.SelectedSentence}"
                                  ItemTemplate="{StaticResource SentenceItemTemplate}"
                                  DoubleTapped="SentenceListBox_DoubleTapped"/>
                     </Border>
@@ -289,8 +289,8 @@
                                          Classes="sentence-list"
                                          Background="Transparent"
                                          BorderThickness="0"
-                                         ItemsSource="{Binding SentenceAudioItems}"
-                                         SelectedItem="{Binding SelectedSentenceAudioItem}"
+                                         ItemsSource="{Binding SentencePlayback.Items}"
+                                         SelectedItem="{Binding SentencePlayback.SelectedSentence}"
                                          ItemTemplate="{StaticResource SentenceItemTemplate}"
                                          DoubleTapped="SentenceListBox_DoubleTapped"/>
                             </Border>

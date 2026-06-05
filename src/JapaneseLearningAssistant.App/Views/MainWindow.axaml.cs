@@ -40,20 +40,20 @@ public partial class MainWindow : Window
     {
         if (_viewModel is not null)
         {
-            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.SentencePlayback.PropertyChanged -= OnSentencePlaybackPropertyChanged;
         }
 
         _viewModel = DataContext as MainWindowViewModel;
 
         if (_viewModel is not null)
         {
-            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.SentencePlayback.PropertyChanged += OnSentencePlaybackPropertyChanged;
         }
     }
 
-    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnSentencePlaybackPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainWindowViewModel.CurrentSentenceAudioItem))
+        if (e.PropertyName == nameof(SentencePlaybackViewModel.CurrentSentence))
         {
             ScrollCurrentSentenceIntoView();
         }
@@ -61,7 +61,7 @@ public partial class MainWindow : Window
 
     private void ScrollCurrentSentenceIntoView()
     {
-        if (_viewModel?.CurrentSentenceAudioItem is not { } item)
+        if (_viewModel?.SentencePlayback.CurrentSentence is not { } item)
         {
             return;
         }
@@ -80,9 +80,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (viewModel.PlaySelectedSentenceCommand.CanExecute(null))
+        if (viewModel.SentencePlayback.PlaySelectedCommand.CanExecute(null))
         {
-            viewModel.PlaySelectedSentenceCommand.Execute(null);
+            viewModel.SentencePlayback.PlaySelectedCommand.Execute(null);
         }
     }
 
