@@ -18,6 +18,68 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
+    <!-- ======================== Shared Resources ======================== -->
+    <Window.Resources>
+        <!-- Color palette -->
+        <SolidColorBrush x:Key="PageBackground" Color="#EEF2F6"/>
+        <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="CardBorder" Color="#D9DEE7"/>
+        <SolidColorBrush x:Key="SectionBorder" Color="#E1E5EC"/>
+        <SolidColorBrush x:Key="SummaryBackground" Color="#F5F7FA"/>
+        <SolidColorBrush x:Key="PlayerBackground" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#172033"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#344054"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#697586"/>
+        <SolidColorBrush x:Key="TextHistorySummary" Color="#5F6B7A"/>
+        <SolidColorBrush x:Key="IssueOriginal" Color="#8A3B12"/>
+        <SolidColorBrush x:Key="IssueSuggestion" Color="#116149"/>
+
+        <!-- Shared DataTemplates -->
+        <DataTemplate x:Key="SentenceItemTemplate" x:DataType="vm:SentenceAudioItemViewModel">
+            <Border Background="{Binding CurrentBackground}"
+                    BorderBrush="{Binding CurrentBorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="4"
+                    Padding="10,8"
+                    Margin="0,1">
+                <Grid ColumnDefinitions="4,32,*,Auto" ColumnSpacing="10">
+                    <Border Background="{Binding CurrentAccentBackground}" CornerRadius="2"/>
+                    <Border Grid.Column="1" Background="{Binding CurrentIndexBackground}" CornerRadius="10" MinWidth="28" Height="22" HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding IndexText}" Foreground="{Binding CurrentIndexForeground}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{Binding CurrentTextForeground}"/>
+                    <TextBlock Grid.Column="3" Text="{Binding AudioStatusText}" Foreground="{Binding AudioStatusForeground}" VerticalAlignment="Top"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="IssueItemTemplate" x:DataType="vm:IssueViewModel">
+            <Border BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,0,0,1" Padding="0,10">
+                <StackPanel Spacing="5">
+                    <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="{StaticResource IssueOriginal}"/>
+                    <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="{StaticResource IssueSuggestion}"/>
+                    <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}"/>
+                    <TextBlock Text="{Binding JlptLevel}" Foreground="{StaticResource TextMuted}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="HistoryItemTemplate" x:DataType="vm:HistoryItemViewModel">
+            <Border BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,0,0,1" Padding="0,8">
+                <StackPanel Spacing="4">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBlock Text="{Binding TimeText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                        <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                    </Grid>
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextHistorySummary}" TextWrapping="Wrap" MaxHeight="42"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <!-- ======================== Shared Styles ======================== -->
     <Window.Styles>
         <Style Selector="ListBox.sentence-list ListBoxItem">
             <Setter Property="Padding" Value="0"/>
@@ -30,26 +92,39 @@
         <Style Selector="TextBlock.section-title">
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#172033"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
         </Style>
         <Style Selector="TextBlock.caption">
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="#697586"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
         </Style>
         <Style Selector="Button">
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
+        <Style Selector="Button.icon-button">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="MinWidth" Value="34"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
         <Style Selector="ComboBox">
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
+        <Style Selector="Expander.settings-expander">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="Auto,*,Auto" Background="#EEF2F6">
-        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,0,0,1" Padding="20,12">
+    <!-- ======================== Main Layout ======================== -->
+    <Grid RowDefinitions="Auto,*,Auto" Background="{StaticResource PageBackground}">
+
+        <!-- Header bar -->
+        <Border Grid.Row="0" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,0,1" Padding="20,12">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel>
-                    <TextBlock Text="日语学习助手" FontSize="22" FontWeight="SemiBold" Foreground="#172033"/>
+                    <TextBlock Text="日语学习助手" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
                     <TextBlock Text="输入、分析、朗读和问题讲解集中在一个学习工作台" Classes="caption" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -59,6 +134,7 @@
             </Grid>
         </Border>
 
+        <!-- Main content: 3-column layout -->
         <Grid x:Name="MainContentGrid" Grid.Row="1" ColumnSpacing="12" Margin="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="310"/>
@@ -66,7 +142,8 @@
                 <ColumnDefinition Width="300"/>
             </Grid.ColumnDefinitions>
 
-            <Border Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="14">
+            <!-- ==================== Left column: Input & Settings ==================== -->
+            <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6" Padding="14">
                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
                     <StackPanel Spacing="10">
                         <StackPanel>
@@ -88,7 +165,7 @@
                              PlaceholderText="输入中文或日语..."/>
 
                     <StackPanel Grid.Row="2" Spacing="8" HorizontalAlignment="Stretch">
-                        <Expander Header="AI 设置" IsExpanded="False" HorizontalAlignment="Stretch">
+                        <Expander Header="AI 设置" IsExpanded="False" Classes="settings-expander">
                             <StackPanel Spacing="8" Margin="0,8,0,0">
                                 <TextBlock Text="分析供应商" Classes="caption"/>
                                 <ComboBox ItemsSource="{Binding AnalysisProviders}" SelectedItem="{Binding SelectedAnalysisProvider}" MinHeight="34" HorizontalAlignment="Stretch"/>
@@ -103,7 +180,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <Expander Header="朗读设置" IsExpanded="False" HorizontalAlignment="Stretch">
+                        <Expander Header="朗读设置" IsExpanded="False" Classes="settings-expander">
                             <StackPanel Spacing="8" Margin="0,8,0,0">
                                 <ComboBox ItemsSource="{Binding Voices}" SelectedItem="{Binding SelectedVoice}" MinHeight="34" HorizontalAlignment="Stretch"/>
                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
@@ -117,8 +194,10 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
+            <!-- ==================== Center column: Analysis & Playback ==================== -->
+            <Border Grid.Column="1" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6" Padding="16">
                 <Grid RowDefinitions="Auto,Auto,1.1*,Auto,0.9*" RowSpacing="12">
+                    <!-- Section header + style selector -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <StackPanel>
                             <TextBlock Text="分析与朗读文本" Classes="section-title"/>
@@ -127,10 +206,12 @@
                         <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="180" MinHeight="34"/>
                     </Grid>
 
-                    <Border Grid.Row="1" Background="#F5F7FA" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="10">
-                        <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" Foreground="#344054"/>
+                    <!-- Summary -->
+                    <Border Grid.Row="1" Background="{StaticResource SummaryBackground}" BorderBrush="{StaticResource SectionBorder}" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}"/>
                     </Border>
 
+                    <!-- Output text -->
                     <TextBox Grid.Row="2"
                              Text="{Binding SelectedOutputText}"
                              AcceptsReturn="True"
@@ -141,23 +222,24 @@
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              IsReadOnly="True"/>
 
-                    <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="8">
+                    <!-- Playback controls -->
+                    <Border Grid.Row="3" Background="{StaticResource PlayerBackground}" BorderBrush="{StaticResource SectionBorder}" BorderThickness="1" CornerRadius="4" Padding="8">
                         <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                             <ComboBox ItemsSource="{Binding PlaybackScopes}"
                                       SelectedItem="{Binding SelectedPlaybackScope}"
                                       Height="36"
                                       Width="86"
                                       VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="上一句">
+                            <Button Grid.Column="1" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Classes="icon-button" ToolTip.Tip="上一句">
                                 <TextBlock Text="‹" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                             <Button Grid.Column="2" Command="{Binding PrimaryPlaybackCommand}" IsEnabled="{Binding CanUsePrimaryPlayback}" Width="42" MinWidth="42" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="{Binding PrimaryPlaybackButtonText}">
                                 <TextBlock Text="{Binding PrimaryPlaybackIcon}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
-                            <Button Grid.Column="3" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="下一句">
+                            <Button Grid.Column="3" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Classes="icon-button" ToolTip.Tip="下一句">
                                 <TextBlock Text="›" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
-                            <Button Grid.Column="4" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" Width="34" MinWidth="34" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="停止">
+                            <Button Grid.Column="4" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" Classes="icon-button" ToolTip.Tip="停止">
                                 <TextBlock Text="■" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                             <Slider Grid.Column="5"
@@ -184,123 +266,60 @@
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="4" Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="0,1,0,0" Padding="0,8,0,0" MinHeight="130" IsVisible="{Binding !IsCompactLayout}">
+                    <!-- Sentence list (normal layout) -->
+                    <Border Grid.Row="4" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,1,0,0" Padding="0,8,0,0" MinHeight="130" IsVisible="{Binding !IsCompactLayout}">
                         <ListBox x:Name="SentenceListBox"
                                  Classes="sentence-list"
                                  Background="Transparent"
                                  BorderThickness="0"
                                  ItemsSource="{Binding SentenceAudioItems}"
                                  SelectedItem="{Binding SelectedSentenceAudioItem}"
-                                 DoubleTapped="SentenceListBox_DoubleTapped">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:SentenceAudioItemViewModel">
-                                    <Border Background="{Binding CurrentBackground}"
-                                            BorderBrush="{Binding CurrentBorderBrush}"
-                                            BorderThickness="0,0,0,1"
-                                            CornerRadius="4"
-                                            Padding="10,8"
-                                            Margin="0,1">
-                                        <Grid ColumnDefinitions="4,32,*,Auto" ColumnSpacing="10">
-                                            <Border Background="{Binding CurrentAccentBackground}" CornerRadius="2"/>
-                                            <Border Grid.Column="1" Background="{Binding CurrentIndexBackground}" CornerRadius="10" MinWidth="28" Height="22" HorizontalAlignment="Left">
-                                                <TextBlock Text="{Binding IndexText}" Foreground="{Binding CurrentIndexForeground}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{Binding CurrentTextForeground}"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding AudioStatusText}" Foreground="{Binding AudioStatusForeground}" VerticalAlignment="Top"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                                 ItemTemplate="{StaticResource SentenceItemTemplate}"
+                                 DoubleTapped="SentenceListBox_DoubleTapped"/>
                     </Border>
 
+                    <!-- Compact layout: tabbed sentence/issues/history -->
                     <TabControl Grid.Row="4" IsVisible="{Binding IsCompactLayout}" FontSize="14">
                         <TabItem>
                             <TabItem.Header>
                                 <TextBlock Text="逐句" FontSize="14" FontWeight="SemiBold"/>
                             </TabItem.Header>
-                            <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+                            <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,1,0,0" Padding="0,8,0,0">
                                 <ListBox x:Name="CompactSentenceListBox"
                                          Classes="sentence-list"
                                          Background="Transparent"
                                          BorderThickness="0"
                                          ItemsSource="{Binding SentenceAudioItems}"
                                          SelectedItem="{Binding SelectedSentenceAudioItem}"
-                                         DoubleTapped="SentenceListBox_DoubleTapped">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:SentenceAudioItemViewModel">
-                                            <Border Background="{Binding CurrentBackground}"
-                                                    BorderBrush="{Binding CurrentBorderBrush}"
-                                                    BorderThickness="0,0,0,1"
-                                                    CornerRadius="4"
-                                                    Padding="10,8"
-                                                    Margin="0,1">
-                                                <Grid ColumnDefinitions="4,32,*,Auto" ColumnSpacing="10">
-                                                    <Border Background="{Binding CurrentAccentBackground}" CornerRadius="2"/>
-                                                    <Border Grid.Column="1" Background="{Binding CurrentIndexBackground}" CornerRadius="10" MinWidth="28" Height="22" HorizontalAlignment="Left">
-                                                        <TextBlock Text="{Binding IndexText}" Foreground="{Binding CurrentIndexForeground}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{Binding CurrentTextForeground}"/>
-                                                    <TextBlock Grid.Column="3" Text="{Binding AudioStatusText}" Foreground="{Binding AudioStatusForeground}" VerticalAlignment="Top"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
+                                         ItemTemplate="{StaticResource SentenceItemTemplate}"
+                                         DoubleTapped="SentenceListBox_DoubleTapped"/>
                             </Border>
                         </TabItem>
                         <TabItem>
                             <TabItem.Header>
                                 <TextBlock Text="问题" FontSize="14" FontWeight="SemiBold"/>
                             </TabItem.Header>
-                            <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="0,1,0,0" Padding="0,8,0,0">
-                                <ListBox ItemsSource="{Binding Issues}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:IssueViewModel">
-                                            <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,10">
-                                                <StackPanel Spacing="5">
-                                                    <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="#8A3B12"/>
-                                                    <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="#116149"/>
-                                                    <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="#344054"/>
-                                                    <TextBlock Text="{Binding JlptLevel}" Foreground="#697586"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
+                            <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+                                <ListBox ItemsSource="{Binding Issues}" ItemTemplate="{StaticResource IssueItemTemplate}"/>
                             </Border>
                         </TabItem>
                         <TabItem>
                             <TabItem.Header>
                                 <TextBlock Text="历史" FontSize="14" FontWeight="SemiBold"/>
                             </TabItem.Header>
-                            <Border Background="#FFFFFF" BorderBrush="#E1E5EC" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+                            <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,1,0,0" Padding="0,8,0,0">
                                 <ListBox ItemsSource="{Binding HistoryItems}"
                                          SelectedItem="{Binding SelectedHistoryItem}"
-                                         DoubleTapped="HistoryListBox_DoubleTapped">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:HistoryItemViewModel">
-                                            <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,8">
-                                                <StackPanel Spacing="4">
-                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                        <TextBlock Text="{Binding TimeText}" Foreground="#697586" FontSize="12"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="#697586" FontSize="12"/>
-                                                    </Grid>
-                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
+                                         ItemTemplate="{StaticResource HistoryItemTemplate}"
+                                         DoubleTapped="HistoryListBox_DoubleTapped"/>
                             </Border>
                         </TabItem>
                     </TabControl>
                 </Grid>
             </Border>
 
-            <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16" IsVisible="{Binding !IsCompactLayout}">
+            <!-- ==================== Right column: Sidebar (issues + history) ==================== -->
+            <Border Grid.Column="2" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6" Padding="16" IsVisible="{Binding !IsCompactLayout}">
                 <Grid RowDefinitions="Auto,*" RowSpacing="10">
                     <StackPanel>
                         <TextBlock Text="侧边栏" Classes="section-title"/>
@@ -311,21 +330,7 @@
                             <TabItem.Header>
                                 <TextBlock Text="问题" FontSize="14" FontWeight="SemiBold"/>
                             </TabItem.Header>
-                            <ListBox ItemsSource="{Binding Issues}">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:IssueViewModel">
-                                        <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,10">
-                                            <StackPanel Spacing="5">
-                                                <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="#8A3B12"/>
-                                                <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="#116149"/>
-                                                <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="#344054"/>
-                                                <TextBlock Text="{Binding JlptLevel}" Foreground="#697586"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                            <ListBox ItemsSource="{Binding Issues}" ItemTemplate="{StaticResource IssueItemTemplate}"/>
                         </TabItem>
                         <TabItem>
                             <TabItem.Header>
@@ -333,30 +338,17 @@
                             </TabItem.Header>
                             <ListBox ItemsSource="{Binding HistoryItems}"
                                      SelectedItem="{Binding SelectedHistoryItem}"
-                                     DoubleTapped="HistoryListBox_DoubleTapped">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:HistoryItemViewModel">
-                                        <Border BorderBrush="#E1E5EC" BorderThickness="0,0,0,1" Padding="0,8">
-                                            <StackPanel Spacing="4">
-                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                    <TextBlock Text="{Binding TimeText}" Foreground="#697586" FontSize="12"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="#697586" FontSize="12"/>
-                                                </Grid>
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding Summary}" Foreground="#5F6B7A" TextWrapping="Wrap" MaxHeight="42"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                                     ItemTemplate="{StaticResource HistoryItemTemplate}"
+                                     DoubleTapped="HistoryListBox_DoubleTapped"/>
                         </TabItem>
                     </TabControl>
                 </Grid>
             </Border>
         </Grid>
 
-        <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="0,1,0,0" Padding="14,8">
-            <TextBlock Text="{Binding StatusText}" Foreground="#344054" TextWrapping="Wrap"/>
+        <!-- Status bar -->
+        <Border Grid.Row="2" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,1,0,0" Padding="14,8">
+            <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
         </Border>
     </Grid>
 
