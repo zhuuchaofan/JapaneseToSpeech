@@ -21,17 +21,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private readonly ITextToSpeechService _textToSpeechService;
     private readonly HistoryStore _historyStore;
-    private readonly IAudioPlaybackService _audioPlaybackService;
-    private readonly DispatcherTimer _playbackTimer;
     private IAnalysisClient _analysisClient;
     private JapaneseAnalysisResult? _latestResult;
     private string? _latestAudioFilePath;
     private string? _latestAudioSourceText;
     private string? _latestAudioVoiceName;
     private double? _latestAudioSpeakingRate;
-    private bool _isUpdatingPlaybackPosition;
-    private bool _isWholePlaybackActive;
-    private bool _isSentencePlaybackActive;
 
     public MainWindowViewModel()
         : this(CreateAnalysisClient(CurrentConfig), CreateTtsService(CurrentConfig), CreateHistoryStore(), new NAudioPlaybackService())
@@ -39,6 +34,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public AnalysisSettingsViewModel AnalysisSettings { get; }
+    public PlaybackController Playback { get; }
 
     public MainWindowViewModel(
         IAnalysisClient analysisClient,
@@ -55,18 +51,20 @@ public partial class MainWindowViewModel : ViewModelBase
             },
             status => StatusText = status,
             RunBusyAsync);
+        Playback = new PlaybackController(audioPlaybackService);
+        Playback.PlaybackEnded += OnPlaybackEnded;
+        Playback.PropertyChanged += (s, e) =>
+        {
+            OnPropertyChanged(nameof(PlayAudioButtonText));
+            OnPropertyChanged(nameof(PlayAudioIcon));
+            NotifySentenceControlProperties();
+            NotifyPrimaryPlaybackProperties();
+        };
+
         _analysisClient = analysisClient;
         _textToSpeechService = textToSpeechService;
         _historyStore = historyStore;
-        _audioPlaybackService = audioPlaybackService;
-        _audioPlaybackService.PlaybackEnded += OnPlaybackEnded;
-        _audioPlaybackService.StateChanged += OnPlaybackStateChanged;
-        _playbackTimer = new DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(250)
-        };
-        _playbackTimer.Tick += (_, _) => UpdatePlaybackProgress();
-        _playbackTimer.Start();
+
         AppLogger.Info("MainWindowViewModel initialized.");
         _ = LoadHistoryAsync();
     }
@@ -110,33 +108,15 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedOutputText = "";
 
     [ObservableProperty]
-    private bool _isAudioPlaying;
-
-    [ObservableProperty]
-    private bool _isAudioPaused;
-
-    [ObservableProperty]
-    private bool _hasLoadedAudio;
-
-    [ObservableProperty]
     private string _selectedWholeAudioPlaybackMode = "整段播放一次";
 
     [ObservableProperty]
     private string _selectedPlaybackScope = "整段";
 
-    [ObservableProperty]
-    private double _playbackPositionSeconds;
-
-    [ObservableProperty]
-    private double _playbackDurationSeconds;
-
-    [ObservableProperty]
-    private string _playbackTimeText = "00:00 / 00:00";
-
-    public string PlayAudioButtonText => _isWholePlaybackActive && IsAudioPlaying ? "暂停" : _isWholePlaybackActive && IsAudioPaused ? "继续" : "播放";
-    public string PlayAudioIcon => _isWholePlaybackActive && IsAudioPlaying ? "⏸" : "▶";
-    public string SentencePlayButtonText => _isSentencePlaybackActive && IsAudioPlaying ? "暂停当前句" : _isSentencePlaybackActive && IsAudioPaused ? "继续当前句" : "播放当前句";
-    public string SentencePlayIcon => _isSentencePlaybackActive && IsAudioPlaying ? "⏸" : "▶";
+    public string PlayAudioButtonText => Playback.CurrentScope == PlaybackScope.Whole && Playback.IsPlaying ? "暂停" : Playback.CurrentScope == PlaybackScope.Whole && Playback.IsPaused ? "继续" : "播放";
+    public string PlayAudioIcon => Playback.CurrentScope == PlaybackScope.Whole && Playback.IsPlaying ? "⏸" : "▶";
+    public string SentencePlayButtonText => Playback.CurrentScope == PlaybackScope.Sentence && Playback.IsPlaying ? "暂停当前句" : Playback.CurrentScope == PlaybackScope.Sentence && Playback.IsPaused ? "继续当前句" : "播放当前句";
+    public string SentencePlayIcon => Playback.CurrentScope == PlaybackScope.Sentence && Playback.IsPlaying ? "⏸" : "▶";
     public bool IsWholePlaybackScope => string.Equals(SelectedPlaybackScope, "整段", StringComparison.Ordinal);
     public bool IsSentencePlaybackScope => string.Equals(SelectedPlaybackScope, "逐句", StringComparison.Ordinal);
     public string PrimaryPlaybackIcon => IsSentencePlaybackScope ? SentencePlayIcon : PlayAudioIcon;
@@ -215,19 +195,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (HasPlayableAudioFor(text))
         {
-            SetPlaybackSource(whole: true, sentence: false);
-            EnsureLatestAudioLoaded();
-            TogglePlayback();
+            Playback.Load(_latestAudioFilePath!, PlaybackScope.Whole);
+            Playback.Toggle();
             return;
         }
 
         await RunBusyAsync("语音生成中...", async cancellationToken =>
         {
             await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
-            SetPlaybackSource(whole: true, sentence: false);
-            EnsureLatestAudioLoaded();
-            _audioPlaybackService.Play();
-            UpdateAudioStateProperties();
+            Playback.Load(_latestAudioFilePath!, PlaybackScope.Whole);
+            Playback.Play();
             StatusText = "正在播放。";
         });
     }
@@ -235,11 +212,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void StopAudio()
     {
-        SetPlaybackSource(whole: false, sentence: false);
         AppLogger.Info("Stop audio requested.");
-        _audioPlaybackService.Stop();
-        UpdatePlaybackProgress();
-        UpdateAudioStateProperties();
+        Playback.Stop();
         StatusText = "播放已停止。";
     }
 
@@ -306,7 +280,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         AppLogger.Info($"History restore requested. CreatedAt={historyItem.CreatedAt:O}, OriginalTextLength={historyItem.OriginalText.Length}.");
-        SetPlaybackSource(whole: false, sentence: false);
+        Playback.Stop();
         InputText = historyItem.OriginalText;
         ApplyAnalysisResult(historyItem.AnalysisResult);
         SelectedHistoryItem = historyItem;
@@ -315,8 +289,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedStyleChanged(string value)
     {
-        SetPlaybackSource(whole: false, sentence: false);
-        StopCurrentPlayback();
+        Playback.Stop();
         SelectedOutputText = GetTextForSelectedStyle();
         RefreshSentenceItems();
     }
@@ -333,19 +306,6 @@ public partial class MainWindowViewModel : ViewModelBase
         InvalidateSentenceAudio();
     }
 
-    partial void OnIsAudioPlayingChanged(bool value)
-    {
-        OnPropertyChanged(nameof(PlayAudioButtonText));
-        OnPropertyChanged(nameof(PlayAudioIcon));
-        NotifySentenceControlProperties();
-    }
-
-    partial void OnIsAudioPausedChanged(bool value)
-    {
-        OnPropertyChanged(nameof(PlayAudioButtonText));
-        OnPropertyChanged(nameof(PlayAudioIcon));
-        NotifySentenceControlProperties();
-    }
 
     partial void OnIsBusyChanged(bool value)
     {
@@ -362,17 +322,6 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnSelectedPlaybackScopeChanged(string value)
     {
         NotifyPlaybackScopeProperties();
-    }
-
-    partial void OnPlaybackPositionSecondsChanged(double value)
-    {
-        if (_isUpdatingPlaybackPosition || PlaybackDurationSeconds <= 0)
-        {
-            return;
-        }
-
-        _audioPlaybackService.Seek(TimeSpan.FromSeconds(value));
-        UpdatePlaybackProgress();
     }
 
     private void ApplyAnalysisResult(JapaneseAnalysisResult result)
@@ -458,28 +407,18 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void EnsureLatestAudioLoaded()
     {
-        if (string.IsNullOrWhiteSpace(_latestAudioFilePath))
-        {
-            throw new FileNotFoundException("音频文件不存在。", _latestAudioFilePath);
-        }
-
-        if (!string.Equals(_audioPlaybackService.LoadedFilePath, _latestAudioFilePath, StringComparison.Ordinal))
-        {
-            _audioPlaybackService.Load(_latestAudioFilePath);
-            UpdatePlaybackProgress();
-            UpdateAudioStateProperties();
-        }
+        // Removed, PlaybackController handles loading directly.
     }
 
     private async Task PlaySentenceAsync(SentenceAudioItemViewModel sentence, CancellationToken cancellationToken)
     {
         if (CurrentSentenceAudioItem == sentence
             && !string.IsNullOrWhiteSpace(sentence.AudioFilePath)
-            && string.Equals(_audioPlaybackService.LoadedFilePath, sentence.AudioFilePath, StringComparison.Ordinal)
-            && _audioPlaybackService.State is AudioPlaybackState.Playing or AudioPlaybackState.Paused)
+            && string.Equals(Playback.LoadedFilePath, sentence.AudioFilePath, StringComparison.Ordinal)
+            && (Playback.IsPlaying || Playback.IsPaused))
         {
-            SetPlaybackSource(whole: false, sentence: true);
-            TogglePlayback();
+            Playback.CurrentScope = PlaybackScope.Sentence;
+            Playback.Toggle();
             return;
         }
 
@@ -492,11 +431,8 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             SetCurrentSentence(sentence);
-            SetPlaybackSource(whole: false, sentence: true);
-            _audioPlaybackService.Load(sentence.AudioFilePath);
-            _audioPlaybackService.Play();
-            UpdatePlaybackProgress();
-            UpdateAudioStateProperties();
+            Playback.Load(sentence.AudioFilePath, PlaybackScope.Sentence);
+            Playback.Play();
             StatusText = $"正在播放第 {sentence.Index + 1} 句。";
             AppLogger.Info($"Sentence playback started. Index={sentence.Index}, Mode={SelectedSentencePlaybackMode}.");
         });
@@ -507,11 +443,9 @@ public partial class MainWindowViewModel : ViewModelBase
         var next = GetRelativeSentence(1);
         if (next is null)
         {
-            SetPlaybackSource(whole: false, sentence: false);
+            Playback.CurrentScope = PlaybackScope.None;
             StatusText = "逐句播放完成。";
             AppLogger.Info("Sentence playback completed at final sentence.");
-            UpdatePlaybackProgress();
-            UpdateAudioStateProperties();
             return;
         }
 
@@ -566,7 +500,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void InvalidateSentenceAudio()
     {
-        SetPlaybackSource(whole: false, sentence: false);
+        Playback.Stop();
         foreach (var sentence in SentenceAudioItems)
         {
             sentence.AudioFilePath = "";
@@ -574,71 +508,37 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void TogglePlayback()
-    {
-        if (_audioPlaybackService.State == AudioPlaybackState.Playing)
-        {
-            _audioPlaybackService.Pause();
-            StatusText = "播放已暂停。";
-        }
-        else
-        {
-            _audioPlaybackService.Play();
-            StatusText = "正在播放。";
-        }
-
-        UpdateAudioStateProperties();
-    }
-
     private void InvalidateCurrentAudio()
     {
-        StopCurrentPlayback();
-        SetPlaybackSource(whole: false, sentence: false);
+        Playback.Stop();
         _latestAudioFilePath = null;
         _latestAudioSourceText = null;
         _latestAudioVoiceName = null;
         _latestAudioSpeakingRate = null;
     }
 
-    private void StopCurrentPlayback()
-    {
-        if (_audioPlaybackService.State is AudioPlaybackState.Playing or AudioPlaybackState.Paused)
-        {
-            _audioPlaybackService.Stop();
-        }
-
-        UpdatePlaybackProgress();
-        UpdateAudioStateProperties();
-    }
-
     private void OnPlaybackEnded(object? sender, EventArgs e)
     {
-        Dispatcher.UIThread.Post(async () =>
+        if (Playback.CurrentScope == PlaybackScope.Sentence && IsSentenceLoopMode())
         {
-            if (_isSentencePlaybackActive && IsSentenceLoopMode())
-            {
-                _audioPlaybackService.Play();
-                StatusText = $"正在循环第 {CurrentSentenceAudioItem?.Index + 1 ?? 1} 句。";
-            }
-            else if (_isSentencePlaybackActive && ShouldAutoPlayNextSentence())
-            {
-                await PlayNextSentenceFromPlaybackEndAsync();
-            }
-            else if (_isWholePlaybackActive && ShouldLoopWholeAudio())
-            {
-                _audioPlaybackService.Play();
-                StatusText = "正在循环整段。";
-            }
-            else
-            {
-                SetPlaybackSource(whole: false, sentence: false);
-                StatusText = "播放完成。";
-                AppLogger.Info("Playback completed.");
-            }
-
-            UpdatePlaybackProgress();
-            UpdateAudioStateProperties();
-        });
+            Playback.Play();
+            StatusText = $"正在循环第 {CurrentSentenceAudioItem?.Index + 1 ?? 1} 句。";
+        }
+        else if (Playback.CurrentScope == PlaybackScope.Sentence && ShouldAutoPlayNextSentence())
+        {
+            _ = PlayNextSentenceFromPlaybackEndAsync();
+        }
+        else if (Playback.CurrentScope == PlaybackScope.Whole && ShouldLoopWholeAudio())
+        {
+            Playback.Play();
+            StatusText = "正在循环整段。";
+        }
+        else
+        {
+            Playback.CurrentScope = PlaybackScope.None;
+            StatusText = "播放完成。";
+            AppLogger.Info("Playback completed.");
+        }
     }
 
     private bool ShouldLoopWholeAudio()
@@ -654,32 +554,6 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool IsSentenceLoopMode()
     {
         return string.Equals(SelectedSentencePlaybackMode, "单句循环", StringComparison.Ordinal);
-    }
-
-    private void OnPlaybackStateChanged(object? sender, EventArgs e)
-    {
-        Dispatcher.UIThread.Post(UpdateAudioStateProperties);
-    }
-
-    private void UpdateAudioStateProperties()
-    {
-        IsAudioPlaying = _audioPlaybackService.State == AudioPlaybackState.Playing;
-        IsAudioPaused = _audioPlaybackService.State == AudioPlaybackState.Paused;
-        HasLoadedAudio = _audioPlaybackService.State != AudioPlaybackState.Empty;
-        OnPropertyChanged(nameof(PlayAudioButtonText));
-        OnPropertyChanged(nameof(PlayAudioIcon));
-        NotifySentenceControlProperties();
-        NotifyPrimaryPlaybackProperties();
-    }
-
-    private void SetPlaybackSource(bool whole, bool sentence)
-    {
-        _isWholePlaybackActive = whole;
-        _isSentencePlaybackActive = sentence;
-        OnPropertyChanged(nameof(PlayAudioButtonText));
-        OnPropertyChanged(nameof(PlayAudioIcon));
-        NotifySentenceControlProperties();
-        NotifyPrimaryPlaybackProperties();
     }
 
     private void NotifySentenceControlProperties()
@@ -704,25 +578,6 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(PrimaryPlaybackIcon));
         OnPropertyChanged(nameof(PrimaryPlaybackButtonText));
         OnPropertyChanged(nameof(CanUsePrimaryPlayback));
-    }
-
-    private void UpdatePlaybackProgress()
-    {
-        var duration = _audioPlaybackService.Duration;
-        var position = _audioPlaybackService.Position;
-
-        _isUpdatingPlaybackPosition = true;
-        PlaybackDurationSeconds = duration.TotalSeconds;
-        PlaybackPositionSeconds = Math.Min(position.TotalSeconds, Math.Max(duration.TotalSeconds, 0));
-        PlaybackTimeText = $"{FormatDuration(position)} / {FormatDuration(duration)}";
-        _isUpdatingPlaybackPosition = false;
-    }
-
-    private static string FormatDuration(TimeSpan duration)
-    {
-        return duration.TotalHours >= 1
-            ? duration.ToString(@"h\:mm\:ss")
-            : duration.ToString(@"mm\:ss");
     }
 
     private async Task RunBusyAsync(string busyText, Func<CancellationToken, Task> operation)

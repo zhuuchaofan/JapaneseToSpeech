@@ -239,16 +239,16 @@
                             <Button Grid.Column="3" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Classes="icon-button" ToolTip.Tip="下一句">
                                 <TextBlock Text="›" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
-                            <Button Grid.Column="4" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" Classes="icon-button" ToolTip.Tip="停止">
+                            <Button Grid.Column="4" Command="{Binding StopAudioCommand}" IsEnabled="{Binding Playback.HasLoadedAudio}" Classes="icon-button" ToolTip.Tip="停止">
                                 <TextBlock Text="■" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
                             <Slider Grid.Column="5"
                                     Minimum="0"
-                                    Maximum="{Binding PlaybackDurationSeconds}"
-                                    Value="{Binding PlaybackPositionSeconds}"
-                                    IsEnabled="{Binding HasLoadedAudio}"
+                                    Maximum="{Binding Playback.DurationSeconds}"
+                                    Value="{Binding Playback.PositionSeconds}"
+                                    IsEnabled="{Binding Playback.HasLoadedAudio}"
                                     VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="6" Text="{Binding PlaybackTimeText}" VerticalAlignment="Center" MinWidth="82"/>
+                            <TextBlock Grid.Column="6" Text="{Binding Playback.TimeText}" VerticalAlignment="Center" MinWidth="82"/>
                             <ComboBox Grid.Column="7"
                                       ItemsSource="{Binding WholeAudioPlaybackModes}"
                                       SelectedItem="{Binding SelectedWholeAudioPlaybackMode}"
