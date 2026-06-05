@@ -36,6 +36,13 @@
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Foreground" Value="#697586"/>
         </Style>
+        <Style Selector="Button">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="Auto,*,Auto" Background="#EEF2F6">
@@ -94,7 +101,7 @@
             </Border>
 
             <Border Grid.Column="1" Background="#FFFFFF" BorderBrush="#D9DEE7" BorderThickness="1" CornerRadius="6" Padding="16">
-                <Grid RowDefinitions="Auto,Auto,*,Auto,220" RowSpacing="12">
+                <Grid RowDefinitions="Auto,Auto,220,Auto,*" RowSpacing="12">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <StackPanel>
                             <TextBlock Text="分析与朗读文本" Classes="section-title"/>
@@ -112,8 +119,10 @@
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              MinHeight="150"
+                             MaxHeight="220"
                              VerticalAlignment="Stretch"
                              VerticalContentAlignment="Top"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
                              IsReadOnly="True"/>
 
                     <Border Grid.Row="3" Background="#F8FAFC" BorderBrush="#E1E5EC" BorderThickness="1" CornerRadius="4" Padding="8">
@@ -123,10 +132,18 @@
                                       Height="36"
                                       Width="86"
                                       VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Content="‹" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" Height="36" VerticalAlignment="Center" ToolTip.Tip="上一句"/>
-                            <Button Grid.Column="2" Content="{Binding PrimaryPlaybackIcon}" Command="{Binding PrimaryPlaybackCommand}" IsEnabled="{Binding CanUsePrimaryPlayback}" Width="42" MinWidth="42" Height="36" VerticalAlignment="Center" ToolTip.Tip="{Binding PrimaryPlaybackButtonText}"/>
-                            <Button Grid.Column="3" Content="›" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" Height="36" VerticalAlignment="Center" ToolTip.Tip="下一句"/>
-                            <Button Grid.Column="4" Content="■" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" Width="34" MinWidth="34" Height="36" VerticalAlignment="Center" ToolTip.Tip="停止"/>
+                            <Button Grid.Column="1" Command="{Binding PlayPreviousSentenceCommand}" IsEnabled="{Binding CanPlayPreviousSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="上一句">
+                                <TextBlock Text="‹" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                            <Button Grid.Column="2" Command="{Binding PrimaryPlaybackCommand}" IsEnabled="{Binding CanUsePrimaryPlayback}" Width="42" MinWidth="42" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="{Binding PrimaryPlaybackButtonText}">
+                                <TextBlock Text="{Binding PrimaryPlaybackIcon}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                            <Button Grid.Column="3" Command="{Binding PlayNextSentenceCommand}" IsEnabled="{Binding CanPlayNextSentence}" IsVisible="{Binding IsSentencePlaybackScope}" Width="34" MinWidth="34" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="下一句">
+                                <TextBlock Text="›" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+                            <Button Grid.Column="4" Command="{Binding StopAudioCommand}" IsEnabled="{Binding HasLoadedAudio}" Width="34" MinWidth="34" Height="36" Padding="0" VerticalAlignment="Center" ToolTip.Tip="停止">
+                                <TextBlock Text="■" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
                             <Slider Grid.Column="5"
                                     Minimum="0"
                                     Maximum="{Binding PlaybackDurationSeconds}"
