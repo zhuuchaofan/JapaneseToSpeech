@@ -54,6 +54,26 @@ public sealed class LocalAppConfig
         return path;
     }
 
+    public string GetAnalysisModel()
+    {
+        return NormalizeAnalysisProvider(AnalysisProvider) switch
+        {
+            "openai" => OpenAiModel,
+            "deepseek" => DeepSeekModel,
+            "mimo" => MiMoModel,
+            _ => GeminiModel
+        };
+    }
+
+    public static string NormalizeAnalysisProvider(string value)
+    {
+        return value.Trim()
+            .Replace("-", "", StringComparison.Ordinal)
+            .Replace("_", "", StringComparison.Ordinal)
+            .Replace(" ", "", StringComparison.Ordinal)
+            .ToLowerInvariant();
+    }
+
     private static LocalAppConfig LoadFromLocalFile()
     {
         var path = FindLocalConfigPath();

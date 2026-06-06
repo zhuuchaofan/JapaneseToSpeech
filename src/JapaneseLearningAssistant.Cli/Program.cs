@@ -69,6 +69,8 @@ try
     await history.SaveAsync(new HistoryEntry
     {
         OriginalText = text,
+        AnalysisProvider = config.AnalysisProvider,
+        AnalysisModel = config.GetAnalysisModel(),
         AnalysisResult = result
     }, CancellationToken.None);
 

@@ -46,6 +46,8 @@ public sealed class HistoryEntry
 {
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
     public string OriginalText { get; set; } = "";
+    public string AnalysisProvider { get; set; } = "";
+    public string AnalysisModel { get; set; } = "";
     public JapaneseAnalysisResult AnalysisResult { get; set; } = new();
     public string? AudioFilePath { get; set; }
 }

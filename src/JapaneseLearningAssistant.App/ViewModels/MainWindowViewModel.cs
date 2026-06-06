@@ -196,6 +196,8 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 CreatedAt = DateTimeOffset.Now,
                 OriginalText = InputText,
+                AnalysisProvider = AnalysisSettings.SelectedProvider,
+                AnalysisModel = AnalysisSettings.Model,
                 AnalysisResult = result
             }, cancellationToken);
 

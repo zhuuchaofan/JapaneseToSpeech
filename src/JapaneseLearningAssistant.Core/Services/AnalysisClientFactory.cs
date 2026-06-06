@@ -11,7 +11,7 @@ public static class AnalysisClientFactory
             Timeout = TimeSpan.FromSeconds(120)
         };
 
-        return NormalizeProvider(config.AnalysisProvider) switch
+        return LocalAppConfig.NormalizeAnalysisProvider(config.AnalysisProvider) switch
         {
             "openai" => new OpenAiResponsesAnalysisClient(httpClient, config.OpenAiApiKey, config.OpenAiModel),
             "deepseek" => new OpenAiCompatibleChatAnalysisClient(
@@ -32,8 +32,4 @@ public static class AnalysisClientFactory
         };
     }
 
-    private static string NormalizeProvider(string value)
-    {
-        return value.Trim().Replace("-", "", StringComparison.Ordinal).Replace("_", "", StringComparison.Ordinal).ToLowerInvariant();
-    }
 }
