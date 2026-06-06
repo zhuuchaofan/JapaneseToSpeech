@@ -144,8 +144,8 @@
 
             <!-- ==================== Left column: Input & Settings ==================== -->
             <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1" CornerRadius="6" Padding="14">
-                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
-                    <StackPanel Spacing="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="12">
                         <StackPanel>
                             <TextBlock Text="输入" Classes="section-title"/>
                             <TextBlock Text="选择场景后输入中文或日语" Classes="caption" Margin="0,2,0,0"/>
@@ -161,17 +161,17 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                    </StackPanel>
 
-                    <TextBox Grid.Row="1"
-                             Text="{Binding InputText, UpdateSourceTrigger=LostFocus}"
+                        <TextBox Text="{Binding InputText, UpdateSourceTrigger=LostFocus}"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
+                             MinHeight="160"
                              VerticalContentAlignment="Top"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
                              input:InputMethod.IsInputMethodEnabled="True"
                              PlaceholderText="输入中文或日语..."/>
 
-                    <StackPanel Grid.Row="2" Spacing="8" HorizontalAlignment="Stretch">
+                    <StackPanel Spacing="8" HorizontalAlignment="Stretch">
                         <Expander Header="AI 设置" IsExpanded="False" Classes="settings-expander">
                             <StackPanel Spacing="8" Margin="0,8,0,0">
                                 <TextBlock Text="分析供应商" Classes="caption"/>
@@ -198,7 +198,8 @@
                             </StackPanel>
                         </Expander>
                     </StackPanel>
-                </Grid>
+                    </StackPanel>
+                </ScrollViewer>
             </Border>
 
             <!-- ==================== Center column: Analysis & Playback ==================== -->
