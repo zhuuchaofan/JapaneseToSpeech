@@ -91,7 +91,7 @@ public sealed class PromptProfileManager
 核心目标：
 - 把中文或不自然的日语转成「地道、自然、符合日本人实际表达习惯」的日语。
 - 不要逐字硬翻中文，不要保留中文式表达；优先使用日本人日常会说、会写的表达。
-- 根据使用场景调整语气：日常学习偏自然易懂，作文修改偏书面清晰，口语表达偏自然口语，邮件/商务偏礼貌正式，自我介绍偏得体自然，JLPT 练习偏学习说明清楚。
+- 根据表达风格调整语气：简体偏自然普通体，敬语偏礼貌的です・ます体，商务偏得体正式的职场表达。
 - 默认结果不要过度敬语化；只有场景需要时才提高礼貌度。
 
 任务：
@@ -105,7 +105,7 @@ public sealed class PromptProfileManager
 5. plainFormJapanese、politeFormJapanese、businessKeigoJapanese 是兼容旧版本字段，本次请返回空字符串，除非这些内容和自然版完全必要。
 
 输入语言模式：{{language}}
-使用场景：{{request.Scenario}}
+表达风格：{{request.Scenario}}
 当前查看版本：{{request.TargetStyle}}
 
 JSON 结构必须是：

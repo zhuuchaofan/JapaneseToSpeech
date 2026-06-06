@@ -129,7 +129,7 @@ public sealed partial class AnalysisSettingsViewModel : ObservableObject
             Text = "今天也一起学习日语。",
             LanguageMode = InputLanguageMode.Japanese,
             Scenario = "日常学习",
-            TargetStyle = "自然版"
+            TargetStyle = "润色：地道自然"
         }, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(result.NaturalJapanese)

@@ -59,18 +59,18 @@
         <DataTemplate x:Key="IssueItemTemplate" x:DataType="vm:IssueViewModel">
             <Border BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,0,0,1" Padding="0,10">
                 <StackPanel Spacing="6">
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                        <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
-                        <Border Grid.Column="1" Background="#EEF2F6" CornerRadius="10" Padding="8,2">
+                    <WrapPanel>
+                        <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold" Margin="0,0,10,4"/>
+                        <Border Background="#EEF2F6" CornerRadius="10" Padding="8,2" Margin="0,0,6,4">
                             <TextBlock Text="{Binding SeverityDisplay}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
                         </Border>
-                        <Border Grid.Column="2" Background="#FFF7ED" CornerRadius="10" Padding="8,2">
+                        <Border Background="#FFF7ED" CornerRadius="10" Padding="8,2" Margin="0,0,6,4">
                             <TextBlock Text="{Binding ErrorKindText}" Foreground="{StaticResource IssueOriginal}" FontSize="12"/>
                         </Border>
-                        <Border Grid.Column="3" Background="#ECFDF3" CornerRadius="10" Padding="8,2" IsVisible="{Binding HasJlptLevel}">
+                        <Border Background="#ECFDF3" CornerRadius="10" Padding="8,2" Margin="0,0,6,4" IsVisible="{Binding HasJlptLevel}">
                             <TextBlock Text="{Binding JlptLevel}" Foreground="{StaticResource IssueSuggestion}" FontSize="12"/>
                         </Border>
-                    </Grid>
+                    </WrapPanel>
                     <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="{StaticResource IssueOriginal}"/>
                     <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="{StaticResource IssueSuggestion}"/>
                     <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}"/>
