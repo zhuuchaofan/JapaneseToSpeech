@@ -209,6 +209,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task PlayAudioAsync()
     {
+        SentencePlayback.CancelPendingPlayback();
         AppLogger.Info($"Whole audio play requested. SelectedStyle={SelectedStyle}, VoiceName={SelectedVoice}, SpeakingRate={SpeakingRate}, Mode={SelectedWholeAudioPlaybackMode}.");
         var text = GetTextForSelectedStyle();
         if (string.IsNullOrWhiteSpace(text))
@@ -237,6 +238,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void StopAudio()
     {
         AppLogger.Info("Stop audio requested.");
+        SentencePlayback.CancelPendingPlayback();
         Playback.Stop();
         StatusText = "播放已停止。";
     }
@@ -466,7 +468,7 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             AppLogger.Error(ex, "Failed to load history.");
-            // History is optional for the MVP; UI should still open if the file is unreadable.
+            StatusText = $"历史记录读取失败：{ex.Message}";
         }
     }
 

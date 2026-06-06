@@ -20,6 +20,7 @@ public partial class SentencePlaybackViewModel : ObservableObject
     private readonly Func<double> _getSpeakingRate;
     private readonly Action<string> _setStatusText;
     private readonly Func<string, Func<CancellationToken, Task>, Task> _runBusyAsync;
+    private int _playbackSessionVersion;
 
     [ObservableProperty]
     private SentenceAudioItemViewModel? _selectedSentence;
@@ -67,7 +68,7 @@ public partial class SentencePlaybackViewModel : ObservableObject
         }
 
         AppLogger.Info($"Selected sentence play requested. Index={sentence.Index}, TextLength={sentence.Text.Length}, Mode={PlaybackMode}.");
-        await PlaySentenceAsync(sentence, CancellationToken.None);
+        await PlaySentenceAsync(sentence, CancellationToken.None, startNewSession: true);
     }
 
     [RelayCommand]
@@ -80,7 +81,7 @@ public partial class SentencePlaybackViewModel : ObservableObject
             return;
         }
 
-        await PlaySentenceAsync(sentence, CancellationToken.None);
+        await PlaySentenceAsync(sentence, CancellationToken.None, startNewSession: true);
     }
 
     [RelayCommand]
@@ -93,11 +94,12 @@ public partial class SentencePlaybackViewModel : ObservableObject
             return;
         }
 
-        await PlaySentenceAsync(sentence, CancellationToken.None);
+        await PlaySentenceAsync(sentence, CancellationToken.None, startNewSession: true);
     }
 
     public void RefreshItems(string text)
     {
+        CancelPendingPlayback();
         Items.Clear();
         SetCurrentSentence(null);
 
@@ -114,6 +116,7 @@ public partial class SentencePlaybackViewModel : ObservableObject
 
     public void InvalidateAudio()
     {
+        CancelPendingPlayback();
         if (_playbackController.CurrentScope == PlaybackScope.Sentence)
         {
             _playbackController.Stop();
@@ -126,7 +129,12 @@ public partial class SentencePlaybackViewModel : ObservableObject
         }
     }
 
-    public async Task PlaySentenceAsync(SentenceAudioItemViewModel sentence, CancellationToken cancellationToken)
+    public void CancelPendingPlayback()
+    {
+        Interlocked.Increment(ref _playbackSessionVersion);
+    }
+
+    public async Task PlaySentenceAsync(SentenceAudioItemViewModel sentence, CancellationToken cancellationToken, bool startNewSession = true)
     {
         if (CurrentSentence == sentence
             && !string.IsNullOrWhiteSpace(sentence.AudioFilePath)
@@ -138,16 +146,32 @@ public partial class SentencePlaybackViewModel : ObservableObject
             return;
         }
 
+        var sessionVersion = startNewSession
+            ? Interlocked.Increment(ref _playbackSessionVersion)
+            : Volatile.Read(ref _playbackSessionVersion);
+
         await _runBusyAsync($"正在准备第 {sentence.Index + 1} 句语音...", async token =>
         {
             await GenerateSpeechAsync(sentence, token);
+            if (!IsCurrentSession(sessionVersion))
+            {
+                AppLogger.Info($"Ignored stale sentence playback task after audio generation. Index={sentence.Index}, Session={sessionVersion}.");
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(sentence.AudioFilePath))
             {
                 throw new FileNotFoundException("句子音频文件不存在。", sentence.AudioFilePath);
             }
 
-            SetCurrentSentence(sentence);
             _playbackController.Load(sentence.AudioFilePath, PlaybackScope.Sentence);
+            if (!IsCurrentSession(sessionVersion))
+            {
+                AppLogger.Info($"Ignored stale sentence playback task after audio load. Index={sentence.Index}, Session={sessionVersion}.");
+                return;
+            }
+
+            SetCurrentSentence(sentence);
             _playbackController.Play();
             _setStatusText($"正在播放第 {sentence.Index + 1} 句。");
             AppLogger.Info($"Sentence playback started. Index={sentence.Index}, Mode={PlaybackMode}.");
@@ -215,6 +239,11 @@ public partial class SentencePlaybackViewModel : ObservableObject
         OnPropertyChanged(nameof(CanPlayNext));
     }
 
+    private bool IsCurrentSession(int sessionVersion)
+    {
+        return sessionVersion == Volatile.Read(ref _playbackSessionVersion);
+    }
+
     private void OnPlaybackEnded(object? sender, EventArgs e)
     {
         if (_playbackController.CurrentScope != PlaybackScope.Sentence)
@@ -236,7 +265,7 @@ public partial class SentencePlaybackViewModel : ObservableObject
                 return;
             }
 
-            _ = PlaySentenceAsync(next, CancellationToken.None);
+            _ = PlaySentenceAsync(next, CancellationToken.None, startNewSession: false);
         }
         else
         {

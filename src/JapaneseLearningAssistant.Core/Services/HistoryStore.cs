@@ -27,6 +27,7 @@ public sealed class HistoryStore
 
         EnsureDatabase();
         MigrateLegacyJsonIfNeeded();
+        AppLogger.Info($"History store initialized. Database={_databasePath}, LegacyJson={_historyFilePath}");
     }
 
     public async Task SaveAsync(HistoryEntry entry, CancellationToken cancellationToken)
@@ -123,8 +124,15 @@ public sealed class HistoryStore
 
     private void MigrateLegacyJsonIfNeeded()
     {
-        if (!File.Exists(_historyFilePath) || HasAnyHistoryRows())
+        if (!File.Exists(_historyFilePath))
         {
+            AppLogger.Info($"Legacy JSON history not found. SQLite migration skipped. Database={_databasePath}");
+            return;
+        }
+
+        if (HasAnyHistoryRows())
+        {
+            AppLogger.Info($"SQLite history already contains rows. Legacy JSON migration skipped. Database={_databasePath}, LegacyJson={_historyFilePath}");
             return;
         }
 
@@ -134,6 +142,7 @@ public sealed class HistoryStore
             var entries = JsonSerializer.Deserialize<List<HistoryEntry>>(json, JsonOptions) ?? [];
             if (entries.Count == 0)
             {
+                AppLogger.Info($"Legacy JSON history is empty. SQLite migration skipped. LegacyJson={_historyFilePath}");
                 return;
             }
 
