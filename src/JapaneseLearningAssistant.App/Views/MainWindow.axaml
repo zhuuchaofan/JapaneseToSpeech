@@ -133,6 +133,13 @@
         <Style Selector="ComboBox">
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
+        <Style Selector="TextBox.text-area">
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="ScrollViewer.AllowAutoHide" Value="False"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        </Style>
         <Style Selector="Expander.settings-expander">
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
         </Style>
@@ -177,11 +184,10 @@
                         </Grid>
 
                         <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                             Classes="text-area"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
-                             MinHeight="160"
-                             VerticalContentAlignment="Top"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             Height="260"
                              input:InputMethod.IsInputMethodEnabled="True"
                              PlaceholderText="输入中文或日语..."/>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -304,12 +310,11 @@
                     <!-- Output text -->
                     <TextBox Grid.Row="2"
                              Text="{Binding SelectedOutputText}"
+                             Classes="text-area"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              MinHeight="150"
                              VerticalAlignment="Stretch"
-                             VerticalContentAlignment="Top"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
                              IsReadOnly="True"/>
 
                     <!-- Playback controls -->
