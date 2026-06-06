@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -28,6 +29,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string? _latestAudioSourceText;
     private string? _latestAudioVoiceName;
     private double? _latestAudioSpeakingRate;
+    private CancellationTokenSource? _busyCancellationSource;
 
     public MainWindowViewModel()
         : this(CreateAnalysisClient(CurrentConfig), CreateTtsService(CurrentConfig), CreateHistoryStore(), new NAudioPlaybackService())
@@ -53,6 +55,7 @@ public partial class MainWindowViewModel : ViewModelBase
             },
             status => StatusText = status,
             RunBusyAsync);
+        AnalysisSettings.PropertyChanged += OnAnalysisSettingsPropertyChanged;
         Playback = new PlaybackController(audioPlaybackService);
         SentencePlayback = new SentencePlaybackViewModel(
             textToSpeechService,
@@ -97,8 +100,17 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public string[] LanguageModes { get; } = ["自动判断", "中文", "日语"];
-    public string[] Scenarios { get; } = ["日常学习", "作文修改", "口语表达", "邮件/商务", "自我介绍", "JLPT 练习"];
-    public string[] Styles { get; } = ["修正版", "自然版", "朗读版"];
+    public string[] Scenarios { get; } = ["简体", "敬语", "商务"];
+    public string[] Styles { get; } =
+    [
+        "直译：对应中文",
+        "纠错：保留原句",
+        "润色：地道自然",
+        "普通体：朋友日记",
+        "丁寧語：一般交流",
+        "商务敬语",
+        "跟读：适合朗读"
+    ];
     public string[] Voices { get; } = ["ja-JP-Neural2-B", "ja-JP-Neural2-C", "ja-JP-Wavenet-B", "ja-JP-Wavenet-C"];
     public string[] PlaybackScopes { get; } = ["整段", "逐句"];
     public string[] WholeAudioPlaybackModes { get; } = ["整段播放一次", "整段循环"];
@@ -111,10 +123,10 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _selectedLanguageMode = "自动判断";
 
     [ObservableProperty]
-    private string _selectedScenario = "日常学习";
+    private string _selectedScenario = "敬语";
 
     [ObservableProperty]
-    private string _selectedStyle = "自然版";
+    private string _selectedStyle = "润色：地道自然";
 
     [ObservableProperty]
     private string _selectedVoice = CurrentConfig.GoogleTtsVoiceName;
@@ -148,10 +160,31 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool IsSentencePlaybackScope => string.Equals(SelectedPlaybackScope, "逐句", StringComparison.Ordinal);
     public string PrimaryPlaybackIcon => IsSentencePlaybackScope ? SentencePlayIcon : PlayAudioIcon;
     public string PrimaryPlaybackButtonText => IsSentencePlaybackScope ? SentencePlayButtonText : PlayAudioButtonText;
-    public bool CanUsePrimaryPlayback => IsSentencePlaybackScope ? CanPlaySelectedSentence : !IsBusy;
+    public string SelectedStyleDescription => SelectedStyle switch
+    {
+        "直译：对应中文" => "用于对照中文原意：尽量保留原文信息，帮助理解中文到日语的对应关系。",
+        "纠错：保留原句" => "用于看哪里错了：尽量保留你的原句结构，只修明显错误和不自然的地方。",
+        "跟读：适合朗读" => "用于听和跟读：基于自然表达拆分句子，让 TTS 和逐句练习更顺。",
+        "普通体：朋友日记" => "用于朋友、日记和轻松口语场景：表达更自然，但不使用丁寧語。",
+        "丁寧語：一般交流" => "用于一般礼貌交流：适合老师、同事、初次见面等常见场景。",
+        "商务敬语" => "用于邮件、客户沟通和更正式场景：更重视礼貌层级和措辞稳妥。",
+        _ => "用于直接使用：改成更像日本人实际会说、会写的自然表达。"
+    };
+    public bool CanUsePrimaryPlayback => IsSentencePlaybackScope ? CanPlaySelectedSentence : !IsBusy && HasSelectedOutput;
     public bool CanPlaySelectedSentence => !IsBusy && SentencePlayback.CanPlaySelected;
     public bool CanPlayPreviousSentence => !IsBusy && SentencePlayback.CanPlayPrevious;
     public bool CanPlayNextSentence => !IsBusy && SentencePlayback.CanPlayNext;
+    public bool CanCancelBusy => IsBusy;
+    public bool HasInputText => !string.IsNullOrWhiteSpace(InputText);
+    public bool HasSelectedOutput => !string.IsNullOrWhiteSpace(SelectedOutputText);
+    public bool CanAnalyzeInput => !IsBusy && HasInputText;
+    public bool CanReadInput => !IsBusy && HasInputText;
+    public string InputStatsText => HasInputText ? $"{InputText.Trim().Length} 字符" : "还没有输入内容";
+    public string InputHintText => HasInputText ? "可直接朗读日语，或让 AI 分析并优化。" : "粘贴中文可生成自然日语；粘贴日语可检查语法、自然度和敬语。";
+    public string ActiveAnalysisConfigText => $"{AnalysisSettings.SelectedProvider} / {AnalysisSettings.Model}";
+    public string AnalysisConfigStatusText => string.IsNullOrWhiteSpace(AnalysisSettings.ApiKey) ? "AI Key 未配置" : "AI Key 已配置";
+    public string TtsConfigStatusText => string.IsNullOrWhiteSpace(CurrentConfig.GoogleTtsApiKey) ? "TTS Key 未配置" : "TTS Key 已配置";
+    public string ActiveVoiceText => $"{SelectedVoice} · {SpeakingRate:F2}x";
 
     public ObservableCollection<IssueViewModel> Issues { get; } = [];
     public ObservableCollection<HistoryItemViewModel> HistoryItems { get; } = [];
@@ -166,7 +199,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isCompactLayout;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanAnalyzeInput))]
     private async Task AnalyzeAsync()
     {
         if (string.IsNullOrWhiteSpace(InputText))
@@ -206,7 +239,7 @@ public partial class MainWindowViewModel : ViewModelBase
         });
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanUsePrimaryPlayback))]
     private async Task PlayAudioAsync()
     {
         SentencePlayback.CancelPendingPlayback();
@@ -234,6 +267,36 @@ public partial class MainWindowViewModel : ViewModelBase
         });
     }
 
+    [RelayCommand(CanExecute = nameof(CanReadInput))]
+    private async Task ReadInputJapaneseAsync()
+    {
+        SentencePlayback.CancelPendingPlayback();
+        Playback.Stop();
+
+        var text = InputText.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            StatusText = "请输入要朗读的日语文本。";
+            return;
+        }
+
+        AppLogger.Info($"Direct Japanese reading requested. TextLength={text.Length}, VoiceName={SelectedVoice}, SpeakingRate={SpeakingRate}.");
+        if (HasPlayableAudioFor(text))
+        {
+            Playback.Load(_latestAudioFilePath!, PlaybackScope.Whole);
+            Playback.Toggle();
+            return;
+        }
+
+        await RunBusyAsync("正在生成输入文本的朗读音频...", async cancellationToken =>
+        {
+            await GenerateSpeechForCurrentSelectionAsync(text, cancellationToken);
+            Playback.Load(_latestAudioFilePath!, PlaybackScope.Whole);
+            Playback.Play();
+            StatusText = "正在朗读输入文本。";
+        });
+    }
+
     [RelayCommand]
     private void StopAudio()
     {
@@ -243,7 +306,7 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusText = "播放已停止。";
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanUsePrimaryPlayback))]
     private async Task PrimaryPlaybackAsync()
     {
         if (IsSentencePlaybackScope)
@@ -255,9 +318,29 @@ public partial class MainWindowViewModel : ViewModelBase
         await PlayAudioAsync();
     }
 
+    [RelayCommand(CanExecute = nameof(CanCancelBusy))]
+    private void CancelBusy()
+    {
+        if (_busyCancellationSource is null)
+        {
+            return;
+        }
+
+        _busyCancellationSource.Cancel();
+        SentencePlayback.CancelPendingPlayback();
+        StatusText = "正在取消当前操作...";
+        AppLogger.Info("Busy operation cancellation requested.");
+    }
+
     [RelayCommand]
     private void RestoreHistory(HistoryItemViewModel? historyItem)
     {
+        if (IsBusy)
+        {
+            StatusText = "当前操作完成后再恢复历史记录。";
+            return;
+        }
+
         historyItem ??= SelectedHistoryItem;
         if (historyItem is null)
         {
@@ -278,25 +361,54 @@ public partial class MainWindowViewModel : ViewModelBase
         Playback.Stop();
         SelectedOutputText = GetTextForSelectedStyle();
         RefreshSentenceItems();
+        OnPropertyChanged(nameof(SelectedStyleDescription));
+        NotifyPrimaryPlaybackProperties();
+    }
+
+    partial void OnSelectedOutputTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSelectedOutput));
+        NotifyPrimaryPlaybackProperties();
     }
 
     partial void OnSelectedVoiceChanged(string value)
     {
         InvalidateCurrentAudio();
         InvalidateSentenceAudio();
+        OnPropertyChanged(nameof(ActiveVoiceText));
     }
 
     partial void OnSpeakingRateChanged(double value)
     {
         InvalidateCurrentAudio();
         InvalidateSentenceAudio();
+        OnPropertyChanged(nameof(ActiveVoiceText));
     }
 
 
     partial void OnIsBusyChanged(bool value)
     {
+        OnPropertyChanged(nameof(CanCancelBusy));
+        OnPropertyChanged(nameof(CanAnalyzeInput));
+        OnPropertyChanged(nameof(CanReadInput));
         NotifySentenceControlProperties();
         NotifyPrimaryPlaybackProperties();
+        AnalyzeCommand.NotifyCanExecuteChanged();
+        ReadInputJapaneseCommand.NotifyCanExecuteChanged();
+        PlayAudioCommand.NotifyCanExecuteChanged();
+        PrimaryPlaybackCommand.NotifyCanExecuteChanged();
+        CancelBusyCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnInputTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasInputText));
+        OnPropertyChanged(nameof(CanAnalyzeInput));
+        OnPropertyChanged(nameof(CanReadInput));
+        OnPropertyChanged(nameof(InputStatsText));
+        OnPropertyChanged(nameof(InputHintText));
+        AnalyzeCommand.NotifyCanExecuteChanged();
+        ReadInputJapaneseCommand.NotifyCanExecuteChanged();
     }
 
 
@@ -312,6 +424,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         SummaryText = result.SummaryZh;
         SelectedOutputText = GetTextForSelectedStyle();
+        OnPropertyChanged(nameof(HasSelectedOutput));
         RefreshSentenceItems();
 
         Issues.Clear();
@@ -330,13 +443,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
         var style = SelectedStyle switch
         {
-            "修正版" => JapaneseStyle.Corrected,
-            "自然版" => JapaneseStyle.Natural,
-            "朗读版" => JapaneseStyle.ReadingOptimized,
+            "直译：对应中文" => (JapaneseStyle?)null,
+            "纠错：保留原句" => JapaneseStyle.Corrected,
+            "润色：地道自然" => JapaneseStyle.Natural,
+            "普通体：朋友日记" => JapaneseStyle.Plain,
+            "丁寧語：一般交流" => JapaneseStyle.Polite,
+            "商务敬语" => JapaneseStyle.BusinessKeigo,
+            "跟读：适合朗读" => JapaneseStyle.ReadingOptimized,
             _ => JapaneseStyle.Natural
         };
 
-        return _latestResult.GetTextForStyle(style);
+        return style is null ? _latestResult.TranslatedJapanese : _latestResult.GetTextForStyle(style.Value);
     }
 
     private async Task<AudioGenerationResult> GenerateSpeechForCurrentSelectionAsync(string text, CancellationToken cancellationToken)
@@ -431,16 +548,32 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(PrimaryPlaybackIcon));
         OnPropertyChanged(nameof(PrimaryPlaybackButtonText));
         OnPropertyChanged(nameof(CanUsePrimaryPlayback));
+        OnPropertyChanged(nameof(HasSelectedOutput));
+        PlayAudioCommand.NotifyCanExecuteChanged();
+        PrimaryPlaybackCommand.NotifyCanExecuteChanged();
     }
 
     private async Task RunBusyAsync(string busyText, Func<CancellationToken, Task> operation)
     {
         IsBusy = true;
         StatusText = busyText;
+        using var userCancellation = new CancellationTokenSource();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(userCancellation.Token, timeout.Token);
+        _busyCancellationSource = userCancellation;
         try
         {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(120));
-            await operation(timeout.Token);
+            await operation(linkedCancellation.Token);
+        }
+        catch (OperationCanceledException) when (userCancellation.IsCancellationRequested)
+        {
+            AppLogger.Info($"Operation cancelled by user. BusyText={busyText}");
+            StatusText = "操作已取消。";
+        }
+        catch (OperationCanceledException)
+        {
+            AppLogger.Info($"Operation timed out. BusyText={busyText}");
+            StatusText = "操作超时，请稍后重试或缩短文本。";
         }
         catch (Exception ex)
         {
@@ -449,7 +582,21 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         finally
         {
+            if (ReferenceEquals(_busyCancellationSource, userCancellation))
+            {
+                _busyCancellationSource = null;
+            }
+
             IsBusy = false;
+        }
+    }
+
+    private void OnAnalysisSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(AnalysisSettings.SelectedProvider) or nameof(AnalysisSettings.Model) or nameof(AnalysisSettings.ApiKey))
+        {
+            OnPropertyChanged(nameof(ActiveAnalysisConfigText));
+            OnPropertyChanged(nameof(AnalysisConfigStatusText));
         }
     }
 
@@ -461,7 +608,7 @@ public partial class MainWindowViewModel : ViewModelBase
             HistoryItems.Clear();
             foreach (var entry in entries.Take(20))
             {
-                HistoryItems.Add(new HistoryItemViewModel(entry));
+                HistoryItems.Add(new HistoryItemViewModel(entry, RestoreHistory));
             }
             AppLogger.Info($"History loaded. Count={HistoryItems.Count}.");
         }

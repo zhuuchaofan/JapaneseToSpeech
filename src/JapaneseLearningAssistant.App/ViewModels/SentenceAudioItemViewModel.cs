@@ -1,17 +1,22 @@
+using System;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace JapaneseLearningAssistant.App.ViewModels;
 
 public sealed partial class SentenceAudioItemViewModel : ObservableObject
 {
-    public SentenceAudioItemViewModel(int index, string text)
+    public SentenceAudioItemViewModel(int index, string text, Func<SentenceAudioItemViewModel, Task> playAsync)
     {
         Index = index;
         Text = text;
+        PlayCommand = new AsyncRelayCommand(() => playAsync(this));
     }
 
     public int Index { get; }
     public string Text { get; }
+    public IAsyncRelayCommand PlayCommand { get; }
     public string IndexText => $"{Index + 1}.";
     public string CurrentMarker => IsCurrent ? "▶" : "";
     public string CurrentBackground => IsCurrent ? "#EFF6FF" : "Transparent";

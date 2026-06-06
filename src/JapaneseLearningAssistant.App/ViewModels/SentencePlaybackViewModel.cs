@@ -106,7 +106,7 @@ public partial class SentencePlaybackViewModel : ObservableObject
         var sentences = SentenceSplitter.Split(text);
         for (var i = 0; i < sentences.Count; i++)
         {
-            Items.Add(new SentenceAudioItemViewModel(i, sentences[i]));
+            Items.Add(new SentenceAudioItemViewModel(i, sentences[i], sentence => PlaySentenceAsync(sentence, CancellationToken.None, startNewSession: true)));
         }
 
         SelectedSentence = Items.FirstOrDefault();

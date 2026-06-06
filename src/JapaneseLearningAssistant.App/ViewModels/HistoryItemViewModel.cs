@@ -1,11 +1,12 @@
 using JapaneseLearningAssistant.Core.Models;
 using JapaneseLearningAssistant.Core.Services;
+using CommunityToolkit.Mvvm.Input;
 
 namespace JapaneseLearningAssistant.App.ViewModels;
 
 public sealed class HistoryItemViewModel
 {
-    public HistoryItemViewModel(HistoryEntry entry)
+    public HistoryItemViewModel(HistoryEntry entry, Action<HistoryItemViewModel>? restore = null)
     {
         CreatedAt = entry.CreatedAt;
         OriginalText = entry.OriginalText;
@@ -16,6 +17,7 @@ public sealed class HistoryItemViewModel
         IssueCountText = entry.AnalysisResult.Issues.Count > 0
             ? $"{entry.AnalysisResult.Issues.Count} 个问题"
             : "无明显问题";
+        RestoreCommand = new RelayCommand(() => restore?.Invoke(this), () => restore is not null);
     }
 
     public DateTimeOffset CreatedAt { get; }
@@ -25,6 +27,7 @@ public sealed class HistoryItemViewModel
     public string Title { get; }
     public string Summary { get; }
     public string IssueCountText { get; }
+    public IRelayCommand RestoreCommand { get; }
 
     private static string Trim(string text, int maxLength)
     {

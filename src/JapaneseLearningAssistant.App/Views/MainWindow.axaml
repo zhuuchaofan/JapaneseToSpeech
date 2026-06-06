@@ -42,25 +42,40 @@
                     CornerRadius="4"
                     Padding="10,8"
                     Margin="0,1">
-                <Grid ColumnDefinitions="4,32,*,Auto" ColumnSpacing="10">
+                <Grid ColumnDefinitions="4,32,*,Auto,Auto" ColumnSpacing="10">
                     <Border Background="{Binding CurrentAccentBackground}" CornerRadius="2"/>
                     <Border Grid.Column="1" Background="{Binding CurrentIndexBackground}" CornerRadius="10" MinWidth="28" Height="22" HorizontalAlignment="Left">
                         <TextBlock Text="{Binding IndexText}" Foreground="{Binding CurrentIndexForeground}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" Foreground="{Binding CurrentTextForeground}"/>
-                    <TextBlock Grid.Column="3" Text="{Binding AudioStatusText}" Foreground="{Binding AudioStatusForeground}" VerticalAlignment="Top"/>
+                    <Button Grid.Column="3" Command="{Binding PlayCommand}" Classes="icon-button" ToolTip.Tip="播放这一句">
+                        <TextBlock Text="▶" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <TextBlock Grid.Column="4" Text="{Binding AudioStatusText}" Foreground="{Binding AudioStatusForeground}" VerticalAlignment="Top"/>
                 </Grid>
             </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="IssueItemTemplate" x:DataType="vm:IssueViewModel">
             <Border BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,0,0,1" Padding="0,10">
-                <StackPanel Spacing="5">
-                    <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
+                <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                        <TextBlock Text="{Binding TypeDisplay}" FontWeight="SemiBold"/>
+                        <Border Grid.Column="1" Background="#EEF2F6" CornerRadius="10" Padding="8,2">
+                            <TextBlock Text="{Binding SeverityDisplay}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                        </Border>
+                        <Border Grid.Column="2" Background="#FFF7ED" CornerRadius="10" Padding="8,2">
+                            <TextBlock Text="{Binding ErrorKindText}" Foreground="{StaticResource IssueOriginal}" FontSize="12"/>
+                        </Border>
+                        <Border Grid.Column="3" Background="#ECFDF3" CornerRadius="10" Padding="8,2" IsVisible="{Binding HasJlptLevel}">
+                            <TextBlock Text="{Binding JlptLevel}" Foreground="{StaticResource IssueSuggestion}" FontSize="12"/>
+                        </Border>
+                    </Grid>
                     <TextBlock Text="{Binding Original}" TextWrapping="Wrap" Foreground="{StaticResource IssueOriginal}"/>
                     <TextBlock Text="{Binding Suggestion}" TextWrapping="Wrap" Foreground="{StaticResource IssueSuggestion}"/>
                     <TextBlock Text="{Binding ExplanationZh}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}"/>
-                    <TextBlock Text="{Binding JlptLevel}" Foreground="{StaticResource TextMuted}"/>
+                    <TextBlock Text="{Binding ExampleJapanese}" TextWrapping="Wrap" Foreground="{StaticResource TextPrimary}" IsVisible="{Binding HasExampleJapanese}"/>
+                    <TextBlock Text="{Binding ExampleChinese}" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" IsVisible="{Binding HasExampleChinese}"/>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -68,9 +83,10 @@
         <DataTemplate x:Key="HistoryItemTemplate" x:DataType="vm:HistoryItemViewModel">
             <Border BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,0,0,1" Padding="0,8">
                 <StackPanel Spacing="4">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                         <TextBlock Text="{Binding TimeText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
                         <TextBlock Grid.Column="1" Text="{Binding IssueCountText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                        <Button Grid.Column="2" Content="恢复" Command="{Binding RestoreCommand}" MinHeight="28" Padding="10,2"/>
                     </Grid>
                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                     <TextBlock Text="{Binding Summary}" Foreground="{StaticResource TextHistorySummary}" TextWrapping="Wrap" MaxHeight="42"/>
@@ -134,7 +150,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <ProgressBar Width="120" Height="6" IsIndeterminate="True" IsVisible="{Binding IsBusy}"/>
-                    <Button Content="分析" Command="{Binding AnalyzeCommand}" IsEnabled="{Binding !IsBusy}" MinWidth="96"/>
+                    <Button Content="取消" Command="{Binding CancelBusyCommand}" IsVisible="{Binding IsBusy}" MinHeight="32"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -153,21 +169,14 @@
                     <StackPanel Spacing="12">
                         <StackPanel>
                             <TextBlock Text="输入" Classes="section-title"/>
-                            <TextBlock Text="选择场景后输入中文或日语" Classes="caption" Margin="0,2,0,0"/>
+                            <TextBlock Text="选择表达风格，输入中文或日语" Classes="caption" Margin="0,2,0,0"/>
                         </StackPanel>
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <ComboBox ItemsSource="{Binding LanguageModes}" SelectedItem="{Binding SelectedLanguageMode}" MinHeight="34" HorizontalAlignment="Stretch"/>
                             <ComboBox Grid.Column="1" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}" MinHeight="34" HorizontalAlignment="Stretch"/>
                         </Grid>
-                        <ComboBox ItemsSource="{Binding PromptProfiles}" SelectedItem="{Binding SelectedPromptProfile}" HorizontalAlignment="Stretch" MinHeight="34" ToolTip.Tip="{Binding SelectedPromptProfile.Description}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
 
-                        <TextBox Text="{Binding InputText, UpdateSourceTrigger=LostFocus}"
+                        <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              MinHeight="160"
@@ -175,6 +184,15 @@
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              input:InputMethod.IsInputMethodEnabled="True"
                              PlaceholderText="输入中文或日语..."/>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBlock Text="{Binding InputHintText}" Classes="caption" TextWrapping="Wrap"/>
+                            <TextBlock Grid.Column="1" Text="{Binding InputStatsText}" Classes="caption"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button Content="直接朗读日语" Command="{Binding ReadInputJapaneseCommand}" IsEnabled="{Binding CanReadInput}" MinHeight="36"/>
+                            <Button Grid.Column="1" Content="分析并优化" Command="{Binding AnalyzeCommand}" IsEnabled="{Binding CanAnalyzeInput}" MinHeight="36"/>
+                        </Grid>
 
                     <StackPanel Spacing="8" HorizontalAlignment="Stretch">
                         <Expander Header="AI 设置" IsExpanded="False" Classes="settings-expander">
@@ -272,10 +290,10 @@
                     <!-- Section header + style selector -->
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <StackPanel>
-                            <TextBlock Text="分析与朗读文本" Classes="section-title"/>
-                            <TextBlock Text="切换版本后，逐句列表会自动刷新" Classes="caption" Margin="0,2,0,0"/>
+                            <TextBlock Text="优化结果" Classes="section-title"/>
+                            <TextBlock Text="{Binding SelectedStyleDescription}" Classes="caption" Margin="0,2,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="180" MinHeight="34"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding Styles}" SelectedItem="{Binding SelectedStyle}" HorizontalAlignment="Left" Width="190" MinHeight="34"/>
                     </Grid>
 
                     <!-- Summary -->
@@ -420,7 +438,16 @@
 
         <!-- Status bar -->
         <Border Grid.Row="2" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,1,0,0" Padding="14,8">
-            <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ActiveAnalysisConfigText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                    <TextBlock Text="{Binding AnalysisConfigStatusText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                    <Border Width="1" Height="16" Background="{StaticResource SectionBorder}"/>
+                    <TextBlock Text="{Binding ActiveVoiceText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                    <TextBlock Text="{Binding TtsConfigStatusText}" Foreground="{StaticResource TextMuted}" FontSize="12"/>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 
