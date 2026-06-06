@@ -98,6 +98,11 @@
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
         </Style>
+        <Style Selector="TextBlock.settings-group-title">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+        </Style>
         <Style Selector="Button">
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -180,6 +185,65 @@
                                 <TextBox Text="{Binding AnalysisSettings.Model}" MinHeight="34" HorizontalAlignment="Stretch"/>
                                 <TextBlock Text="API Key" Classes="caption"/>
                                 <TextBox Text="{Binding AnalysisSettings.ApiKey}" PasswordChar="*" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="保存后写入本地配置"/>
+                                <StackPanel Spacing="12" IsVisible="{Binding AnalysisSettings.IsGeminiSelected}">
+                                    <Border BorderBrush="{StaticResource SectionBorder}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="Gemini 高级设置" Classes="settings-group-title"/>
+                                            <TextBlock Text="保持默认即可；需要走 Google Cloud、控制输出稳定性或加强拦截时再调整。" Classes="caption" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="调用方式" Classes="settings-group-title"/>
+                                        <CheckBox Content="通过 Google Cloud 项目调用（Agent Platform / Vertex AI）" IsChecked="{Binding AnalysisSettings.GeminiUseAgentPlatform}"/>
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <StackPanel>
+                                                <TextBlock Text="项目 ID" Classes="caption"/>
+                                                <TextBox Text="{Binding AnalysisSettings.GeminiProjectId}" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="例如 my-gcp-project"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="区域" Classes="caption"/>
+                                                <TextBox Text="{Binding AnalysisSettings.GeminiLocation}" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="global"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="输出控制" Classes="settings-group-title"/>
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <StackPanel>
+                                                <TextBlock Text="思考深度" Classes="caption"/>
+                                                <ComboBox ItemsSource="{Binding AnalysisSettings.GeminiThinkingLevels}" SelectedItem="{Binding AnalysisSettings.GeminiThinkingLevel}" MinHeight="34" HorizontalAlignment="Stretch"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="稳定性" Classes="caption"/>
+                                                <TextBox Text="{Binding AnalysisSettings.GeminiTemperature}" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="0.2"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <StackPanel>
+                                                <TextBlock Text="回答长度上限" Classes="caption"/>
+                                                <TextBox Text="{Binding AnalysisSettings.GeminiMaxOutputTokens}" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="留空"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="候选范围" Classes="caption"/>
+                                                <TextBox Text="{Binding AnalysisSettings.GeminiTopP}" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="Top P，留空"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <StackPanel>
+                                            <TextBlock Text="候选数量" Classes="caption"/>
+                                            <TextBox Text="{Binding AnalysisSettings.GeminiTopK}" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="Top K，留空"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="安全控制" Classes="settings-group-title"/>
+                                        <TextBlock Text="拦截强度" Classes="caption"/>
+                                        <ComboBox ItemsSource="{Binding AnalysisSettings.GeminiSafetyThresholds}" SelectedItem="{Binding AnalysisSettings.GeminiSafetyThreshold}" MinHeight="34" HorizontalAlignment="Stretch"/>
+                                        <TextBlock Text="本地屏蔽词" Classes="caption"/>
+                                        <TextBox Text="{Binding AnalysisSettings.GeminiBlockedKeywords}" MinHeight="34" HorizontalAlignment="Stretch" PlaceholderText="英文逗号分隔；命中后不请求 API"/>
+                                    </StackPanel>
+                                </StackPanel>
                                 <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,4,0,0">
                                     <Button Content="测试连接" Command="{Binding AnalysisSettings.TestConnectionCommand}" IsEnabled="{Binding !IsBusy}" MinHeight="34"/>
                                     <Button Grid.Column="1" Content="保存设置" Command="{Binding AnalysisSettings.SaveSettingsCommand}" IsEnabled="{Binding !IsBusy}" MinHeight="34"/>

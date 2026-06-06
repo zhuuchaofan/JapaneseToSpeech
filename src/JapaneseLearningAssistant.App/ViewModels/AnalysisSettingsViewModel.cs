@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -17,6 +18,23 @@ public sealed partial class AnalysisSettingsViewModel : ObservableObject
     private readonly Func<string, Func<CancellationToken, Task>, Task> _runBusyAsync;
 
     public string[] AnalysisProviders { get; } = ["Gemini", "OpenAI", "DeepSeek", "MiMo"];
+    public string[] GeminiThinkingLevels { get; } =
+    [
+        "默认：跟随模型",
+        "极低：最快响应",
+        "低：简单分析",
+        "中：推荐",
+        "高：更细致"
+    ];
+
+    public string[] GeminiSafetyThresholds { get; } =
+    [
+        "关闭：不额外拦截",
+        "宽松：仅拦截极少内容",
+        "轻度：只拦截高风险",
+        "标准：拦截中高风险",
+        "严格：低风险也拦截"
+    ];
 
     [ObservableProperty]
     private string _selectedProvider;
@@ -26,6 +44,39 @@ public sealed partial class AnalysisSettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private string _apiKey;
+
+    [ObservableProperty]
+    private bool _isGeminiSelected;
+
+    [ObservableProperty]
+    private bool _geminiUseAgentPlatform;
+
+    [ObservableProperty]
+    private string _geminiProjectId = "";
+
+    [ObservableProperty]
+    private string _geminiLocation = "global";
+
+    [ObservableProperty]
+    private string _geminiTemperature = "0.2";
+
+    [ObservableProperty]
+    private string _geminiTopP = "";
+
+    [ObservableProperty]
+    private string _geminiTopK = "";
+
+    [ObservableProperty]
+    private string _geminiMaxOutputTokens = "";
+
+    [ObservableProperty]
+    private string _geminiThinkingLevel = "中：推荐";
+
+    [ObservableProperty]
+    private string _geminiSafetyThreshold = "标准：拦截中高风险";
+
+    [ObservableProperty]
+    private string _geminiBlockedKeywords = "";
 
     public AnalysisSettingsViewModel(
         LocalAppConfig currentConfig,
@@ -41,12 +92,15 @@ public sealed partial class AnalysisSettingsViewModel : ObservableObject
         _selectedProvider = NormalizeProviderDisplayName(_currentConfig.AnalysisProvider);
         _model = GetModelForProvider(_currentConfig, _selectedProvider);
         _apiKey = GetApiKeyForProvider(_currentConfig, _selectedProvider);
+        LoadGeminiSettings(_currentConfig);
+        _isGeminiSelected = IsGeminiProvider(_selectedProvider);
     }
 
     partial void OnSelectedProviderChanged(string value)
     {
         Model = GetModelForProvider(_currentConfig, value);
         ApiKey = GetApiKeyForProvider(_currentConfig, value);
+        IsGeminiSelected = IsGeminiProvider(value);
         _onStatusTextChanged?.Invoke($"已切换分析供应商为 {NormalizeProviderDisplayName(value)}。");
     }
 
@@ -95,6 +149,7 @@ public sealed partial class AnalysisSettingsViewModel : ObservableObject
         var config = CloneConfig(_currentConfig);
         config.AnalysisProvider = NormalizeProviderDisplayName(SelectedProvider);
         SetProviderOverrides(config, SelectedProvider, Model, ApiKey);
+        ApplyGeminiSettings(config);
 
         var path = LocalAppConfig.Save(config);
         _currentConfig = config;
@@ -109,8 +164,11 @@ public sealed partial class AnalysisSettingsViewModel : ObservableObject
         var config = CloneConfig(_currentConfig);
         config.AnalysisProvider = SelectedProvider;
         SetProviderOverrides(config, SelectedProvider, Model, ApiKey);
+        ApplyGeminiSettings(config);
         return AnalysisClientFactory.Create(config);
     }
+
+    private static bool IsGeminiProvider(string provider) => NormalizeProviderDisplayName(provider) == "Gemini";
 
     private static string NormalizeProviderDisplayName(string value) => value.Trim().ToLowerInvariant() switch
     {
@@ -159,11 +217,139 @@ public sealed partial class AnalysisSettingsViewModel : ObservableObject
         }
     }
 
+    private void LoadGeminiSettings(LocalAppConfig config)
+    {
+        GeminiUseAgentPlatform = config.GeminiUseAgentPlatform;
+        GeminiProjectId = config.GeminiProjectId;
+        GeminiLocation = config.GeminiLocation;
+        GeminiTemperature = FormatNullableFloat(config.GeminiTemperature);
+        GeminiTopP = FormatNullableFloat(config.GeminiTopP);
+        GeminiTopK = FormatNullableFloat(config.GeminiTopK);
+        GeminiMaxOutputTokens = config.GeminiMaxOutputTokens?.ToString(CultureInfo.InvariantCulture) ?? "";
+        GeminiThinkingLevel = ToThinkingDisplayValue(config.GeminiThinkingLevel);
+        GeminiSafetyThreshold = ToSafetyDisplayValue(config.GeminiSafetyThreshold);
+        GeminiBlockedKeywords = string.Join(", ", config.GeminiBlockedKeywords);
+    }
+
+    private void ApplyGeminiSettings(LocalAppConfig config)
+    {
+        config.GeminiUseAgentPlatform = GeminiUseAgentPlatform;
+        config.GeminiProjectId = GeminiProjectId.Trim();
+        config.GeminiLocation = string.IsNullOrWhiteSpace(GeminiLocation) ? "global" : GeminiLocation.Trim();
+        config.GeminiTemperature = ParseFloat(GeminiTemperature, 0.2f, nameof(GeminiTemperature));
+        config.GeminiTopP = ParseNullableFloat(GeminiTopP, nameof(GeminiTopP));
+        config.GeminiTopK = ParseNullableFloat(GeminiTopK, nameof(GeminiTopK));
+        config.GeminiMaxOutputTokens = ParseNullableInt(GeminiMaxOutputTokens, nameof(GeminiMaxOutputTokens));
+        config.GeminiThinkingLevel = ToThinkingApiValue(GeminiThinkingLevel);
+        config.GeminiSafetyThreshold = ToSafetyApiValue(GeminiSafetyThreshold);
+        config.GeminiBlockedKeywords = GeminiBlockedKeywords
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static string ToThinkingDisplayValue(string value)
+    {
+        return value.Trim().ToUpperInvariant() switch
+        {
+            "DEFAULT" => "默认：跟随模型",
+            "MINIMAL" => "极低：最快响应",
+            "LOW" => "低：简单分析",
+            "HIGH" => "高：更细致",
+            _ => "中：推荐"
+        };
+    }
+
+    private static string ToThinkingApiValue(string value)
+    {
+        return value.Trim() switch
+        {
+            "默认：跟随模型" => "DEFAULT",
+            "极低：最快响应" => "MINIMAL",
+            "低：简单分析" => "LOW",
+            "高：更细致" => "HIGH",
+            _ => "MEDIUM"
+        };
+    }
+
+    private static string ToSafetyDisplayValue(string value)
+    {
+        return value.Trim().ToUpperInvariant() switch
+        {
+            "OFF" => "关闭：不额外拦截",
+            "BLOCK_NONE" => "宽松：仅拦截极少内容",
+            "BLOCK_ONLY_HIGH" => "轻度：只拦截高风险",
+            "BLOCK_LOW_AND_ABOVE" => "严格：低风险也拦截",
+            _ => "标准：拦截中高风险"
+        };
+    }
+
+    private static string ToSafetyApiValue(string value)
+    {
+        return value.Trim() switch
+        {
+            "关闭：不额外拦截" => "OFF",
+            "宽松：仅拦截极少内容" => "BLOCK_NONE",
+            "轻度：只拦截高风险" => "BLOCK_ONLY_HIGH",
+            "严格：低风险也拦截" => "BLOCK_LOW_AND_ABOVE",
+            _ => "BLOCK_MEDIUM_AND_ABOVE"
+        };
+    }
+
+    private static string FormatNullableFloat(float? value)
+    {
+        return value?.ToString("0.###", CultureInfo.InvariantCulture) ?? "";
+    }
+
+    private static float ParseFloat(string value, float fallback, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback;
+        }
+
+        return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : throw new InvalidOperationException($"{fieldName} 必须是数字，例如 0.2。");
+    }
+
+    private static float? ParseNullableFloat(string value, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : throw new InvalidOperationException($"{fieldName} 必须是数字，留空表示使用模型默认值。");
+    }
+
+    private static int? ParseNullableInt(string value, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : throw new InvalidOperationException($"{fieldName} 必须是整数，留空表示使用模型默认值。");
+    }
+
     private static LocalAppConfig CloneConfig(LocalAppConfig config) => new()
     {
         AnalysisProvider = config.AnalysisProvider,
         GeminiApiKey = config.GeminiApiKey,
         GeminiModel = config.GeminiModel,
+        GeminiUseAgentPlatform = config.GeminiUseAgentPlatform,
+        GeminiProjectId = config.GeminiProjectId,
+        GeminiLocation = config.GeminiLocation,
+        GeminiTemperature = config.GeminiTemperature,
+        GeminiTopP = config.GeminiTopP,
+        GeminiTopK = config.GeminiTopK,
+        GeminiMaxOutputTokens = config.GeminiMaxOutputTokens,
+        GeminiThinkingLevel = config.GeminiThinkingLevel,
+        GeminiSafetyThreshold = config.GeminiSafetyThreshold,
+        GeminiBlockedKeywords = [.. config.GeminiBlockedKeywords],
         OpenAiApiKey = config.OpenAiApiKey,
         OpenAiModel = config.OpenAiModel,
         DeepSeekApiKey = config.DeepSeekApiKey,

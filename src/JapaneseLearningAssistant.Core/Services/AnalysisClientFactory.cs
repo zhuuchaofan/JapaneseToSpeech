@@ -28,7 +28,7 @@ public static class AnalysisClientFactory
                 config.MiMoModel,
                 apiKeyHeaderName: "api-key",
                 usesMaxCompletionTokens: true),
-            _ => new GoogleGeminiClient(httpClient, config.GeminiApiKey, config.GeminiModel)
+            _ => new GoogleGeminiClient(httpClient, config)
         };
     }
 
